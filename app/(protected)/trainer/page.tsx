@@ -340,63 +340,6 @@ export default function TrainerDashboard() {
         </p>
       </div>
 
-      {/* Overview Stats */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Students
-            </CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalStudents}</div>
-            <p className="text-xs text-muted-foreground">Across all courses</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Courses
-            </CardTitle>
-            <BookOpen className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{trainerCourses.length}</div>
-            <p className="text-xs text-muted-foreground">Currently running</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Average Rating
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{avgRating.toFixed(1)}</div>
-            <p className="text-xs text-muted-foreground">Student feedback</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Completion Rate
-            </CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">78%</div>
-            <p className="text-xs text-muted-foreground">
-              Average across courses
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
       <Tabs
         value={activeTab}
         onValueChange={setActiveTab}
@@ -424,34 +367,23 @@ export default function TrainerDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">{course.title}</CardTitle>
-                      <CardDescription>
-                        Last updated: 2025-01-10
-                      </CardDescription>
                     </div>
                     <Badge variant="outline">{course.category}</Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-4">
-                    <div>
+                    {/* <div>
                       <p className="text-sm font-medium mb-1">Students</p>
                       <p className="text-2xl font-bold">{course.students}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium mb-1">Avg Progress</p>
-                      <p className="text-2xl font-bold">
-                        {course.avgProgress}%
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium mb-1">Rating</p>
-                      <p className="text-2xl font-bold">{course.avgRating}</p>
-                    </div>
+                    </div> */}
+
                     <div className="flex gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleViewCourse(course.id)}
+                        className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 border-blue-200"
                       >
                         <Eye className="h-4 w-4 mr-1" />
                         View
@@ -460,6 +392,7 @@ export default function TrainerDashboard() {
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditCourse(course.id)}
+                        className="text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 border-yellow-300"
                       >
                         <Edit className="h-4 w-4 mr-1" />
                         Edit

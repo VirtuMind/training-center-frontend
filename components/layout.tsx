@@ -1,30 +1,92 @@
-"use client"
+"use client";
 
-import type React from "react"
+import type React from "react";
 
-import { useState } from "react"
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, Home, BookOpen, BarChart3, Users, Settings, LogOut, GraduationCap } from "lucide-react"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { getCurrentUser, removeAuthTokens } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Menu,
+  Home,
+  BookOpen,
+  BarChart3,
+  Users,
+  Settings,
+  LogOut,
+  GraduationCap,
+} from "lucide-react";
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Courses", href: "/courses", icon: BookOpen },
-  { name: "Progress", href: "/progress", icon: BarChart3 },
-  { name: "Trainer Panel", href: "/trainer", icon: Users },
-  { name: "Admin Panel", href: "/admin", icon: Settings },
-]
+// Define navigation items with role restrictions
+const navigationItems = [
+  {
+    name: "Dashboard",
+    href: "/dashboard",
+    icon: Home,
+    roles: ["STUDENT"],
+  },
+  {
+    name: "Courses",
+    href: "/courses",
+    icon: BookOpen,
+    roles: ["STUDENT"],
+  },
+  {
+    name: "Progress",
+    href: "/progress",
+    icon: BarChart3,
+    roles: ["STUDENT"],
+  },
+  {
+    name: "Trainer Panel",
+    href: "/trainer",
+    icon: Users,
+    roles: ["TRAINER"],
+  },
+  {
+    name: "Admin Panel",
+    href: "/admin",
+    icon: Settings,
+    roles: ["ADMIN"],
+  },
+];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname()
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userRole, setUserRole] = useState<string>("Student");
+
+  // Filter navigation items based on user role
+  const navigation = navigationItems.filter((item) =>
+    item.roles.includes(userRole)
+  );
+
+  // Get user role from local storage on component mount
+  useEffect(() => {
+    try {
+      const user = getCurrentUser();
+      if (user?.role) {
+        setUserRole(user.role);
+      }
+    } catch (error) {
+      console.error("Error getting user role:", error);
+    }
+  }, []);
 
   const handleLogout = () => {
-    // Implement logout functionality
-    alert("Logged out successfully!")
-  }
+    try {
+      // Simply clear local storage and redirect (no server communication)
+      removeAuthTokens();
+
+      // Redirect to login page
+      window.location.href = "/login";
+    } catch (error) {
+      console.error("Logout error:", error);
+      alert("Error during logout. Please try again.");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -40,7 +102,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
                   {navigation.map((item) => {
-                    const isActive = pathname === item.href
+                    const isActive = pathname === item.href;
                     return (
                       <li key={item.name}>
                         <Link
@@ -55,7 +117,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           {item.name}
                         </Link>
                       </li>
-                    )
+                    );
                   })}
                 </ul>
               </li>
@@ -70,14 +132,20 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="lg:pl-72">
           <div className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-x-4 border-b border-border bg-background px-4 shadow-sm sm:gap-x-6 sm:px-6 lg:px-8">
             <SheetTrigger asChild>
-              <Button variant="outline" size="icon" className="lg:hidden bg-transparent">
+              <Button
+                variant="outline"
+                size="icon"
+                className="lg:hidden bg-transparent"
+              >
                 <Menu className="h-6 w-6" />
                 <span className="sr-only">Open sidebar</span>
               </Button>
             </SheetTrigger>
 
             <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
-              <div className="relative flex flex-1">{/* Search can be added here */}</div>
+              <div className="relative flex flex-1">
+                {/* Search can be added here */}
+              </div>
               <div className="flex items-center gap-x-4 lg:gap-x-6">
                 <Button variant="outline" size="icon" onClick={handleLogout}>
                   <LogOut className="h-4 w-4" />
@@ -98,7 +166,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
               <li>
                 <ul role="list" className="-mx-2 space-y-1">
                   {navigation.map((item) => {
-                    const isActive = pathname === item.href
+                    const isActive = pathname === item.href;
                     return (
                       <li key={item.name}>
                         <Link
@@ -114,7 +182,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                           {item.name}
                         </Link>
                       </li>
-                    )
+                    );
                   })}
                 </ul>
               </li>
@@ -130,5 +198,5 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </div>
-  )
+  );
 }

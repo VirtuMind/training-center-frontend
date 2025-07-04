@@ -1,43 +1,55 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { ArrowLeft, Save, Upload, Plus, Trash2, ImageIcon } from "lucide-react"
-import { useParams, useRouter } from "next/navigation"
-import { courseApi } from "@/lib/api"
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { ArrowLeft, Save, Upload, Plus, Trash2, ImageIcon } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { courseApi } from "@/lib/api";
 
 interface Module {
-  id: string
-  title: string
-  lessons: Lesson[]
+  id: string;
+  title: string;
+  lessons: Lesson[];
 }
 
 interface Lesson {
-  id: string
-  title: string
-  duration: string
-  type: "video" | "document"
+  id: string;
+  title: string;
+  duration: string;
+  type: "video" | "document";
 }
 
 interface QuizQuestion {
-  id: string
-  question: string
-  options: string[]
-  correctAnswer: number
+  id: string;
+  question: string;
+  options: string[];
+  correctAnswer: number;
 }
 
 export default function EditCourse() {
-  const params = useParams()
-  const router = useRouter()
-  const courseId = Number.parseInt(params.id as string)
+  const params = useParams();
+  const router = useRouter();
+  const courseId = Number.parseInt(params.id as string);
 
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(false);
   const [course, setCourse] = useState({
     title: "React Development Fundamentals",
     description:
@@ -46,17 +58,22 @@ export default function EditCourse() {
     duration: "8 weeks",
     level: "beginner",
     coverImage: "",
-  })
+  });
   const [modules, setModules] = useState<Module[]>([
     {
       id: "1",
       title: "Introduction to React",
       lessons: [
         { id: "1", title: "What is React?", duration: "15 min", type: "video" },
-        { id: "2", title: "Setting up Development Environment", duration: "20 min", type: "video" },
+        {
+          id: "2",
+          title: "Setting up Development Environment",
+          duration: "20 min",
+          type: "video",
+        },
       ],
     },
-  ])
+  ]);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([
     {
       id: "1",
@@ -69,100 +86,103 @@ export default function EditCourse() {
       ],
       correctAnswer: 1,
     },
-  ])
+  ]);
   const [currentModule, setCurrentModule] = useState<Module>({
     id: "",
     title: "",
     lessons: [],
-  })
+  });
   const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion>({
     id: "",
     question: "",
     options: ["", "", "", ""],
     correctAnswer: 0,
-  })
+  });
 
   useEffect(() => {
-    loadCourseData()
-  }, [courseId])
+    loadCourseData();
+  }, [courseId]);
 
   const loadCourseData = async () => {
     try {
-      const response = await courseApi.getCourseById(courseId)
+      const response = await courseApi.getCourseById(courseId);
       if (response.success && response.data) {
         // In a real app, you'd populate the form with the actual course data
-        console.log("Loaded course data:", response.data)
+        console.log("Loaded course data:", response.data);
       }
     } catch (error) {
-      console.error("Failed to load course data:", error)
+      console.error("Failed to load course data:", error);
     }
-  }
+  };
 
   const updateCourse = async () => {
-    setLoading(true)
+    setLoading(true);
     try {
       const courseData = {
         ...course,
         modules,
         quizQuestions,
-      }
+      };
 
-      const response = await courseApi.updateCourse(courseId, courseData)
+      const response = await courseApi.updateCourse(courseId, courseData);
 
       if (response.success) {
-        alert("Course updated successfully!")
-        router.push("/trainer")
+        alert("Course updated successfully!");
+        router.push("/trainer");
       } else {
-        throw new Error(response.error || "Course update failed")
+        throw new Error(response.error || "Course update failed");
       }
     } catch (error) {
-      console.error("Course update failed:", error)
-      alert("Course update failed. Please try again.")
+      console.error("Course update failed:", error);
+      alert("Course update failed. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const addModule = () => {
     if (currentModule.title) {
       const moduleWithId = {
         ...currentModule,
         id: Date.now().toString(),
-      }
-      setModules([...modules, moduleWithId])
-      setCurrentModule({ id: "", title: "", lessons: [] })
+      };
+      setModules([...modules, moduleWithId]);
+      setCurrentModule({ id: "", title: "", lessons: [] });
     }
-  }
+  };
 
   const removeModule = (moduleId: string) => {
-    setModules(modules.filter((m) => m.id !== moduleId))
-  }
+    setModules(modules.filter((m) => m.id !== moduleId));
+  };
 
   const addQuizQuestion = () => {
-    if (currentQuestion.question && currentQuestion.options.every((opt) => opt.trim())) {
+    if (
+      currentQuestion.question &&
+      currentQuestion.options.every((opt) => opt.trim())
+    ) {
       const questionWithId = {
         ...currentQuestion,
         id: Date.now().toString(),
-      }
-      setQuizQuestions([...quizQuestions, questionWithId])
+      };
+      setQuizQuestions([...quizQuestions, questionWithId]);
       setCurrentQuestion({
         id: "",
         question: "",
         options: ["", "", "", ""],
         correctAnswer: 0,
-      })
+      });
     }
-  }
+  };
 
   const removeQuizQuestion = (questionId: string) => {
-    setQuizQuestions(quizQuestions.filter((q) => q.id !== questionId))
-  }
+    setQuizQuestions(quizQuestions.filter((q) => q.id !== questionId));
+  };
 
   const updateQuestionOption = (index: number, value: string) => {
-    const newOptions = [...currentQuestion.options]
-    newOptions[index] = value
-    setCurrentQuestion({ ...currentQuestion, options: newOptions })
-  }
+    const newOptions = [...currentQuestion.options];
+    newOptions[index] = value;
+    setCurrentQuestion({ ...currentQuestion, options: newOptions });
+  };
 
   return (
     <div className="space-y-6">
@@ -172,14 +192,18 @@ export default function EditCourse() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Edit Course</h1>
-          <p className="text-muted-foreground">Update your course content and settings</p>
+          <p className="text-muted-foreground">
+            Update your course content and settings
+          </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
           <CardTitle>Course Information</CardTitle>
-          <CardDescription>Update the basic details of your course</CardDescription>
+          <CardDescription>
+            Update the basic details of your course
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
@@ -188,21 +212,32 @@ export default function EditCourse() {
               <Input
                 id="title"
                 value={course.title}
-                onChange={(e) => setCourse({ ...course, title: e.target.value })}
+                onChange={(e) =>
+                  setCourse({ ...course, title: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
-              <Select value={course.category} onValueChange={(value) => setCourse({ ...course, category: value })}>
+              <Select
+                value={course.category}
+                onValueChange={(value) =>
+                  setCourse({ ...course, category: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="web-development">Web Development</SelectItem>
+                  <SelectItem value="web-development">
+                    Web Development
+                  </SelectItem>
                   <SelectItem value="data-science">Data Science</SelectItem>
                   <SelectItem value="marketing">Marketing</SelectItem>
                   <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="cloud-computing">Cloud Computing</SelectItem>
+                  <SelectItem value="cloud-computing">
+                    Cloud Computing
+                  </SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -211,7 +246,12 @@ export default function EditCourse() {
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="level">Level</Label>
-              <Select value={course.level} onValueChange={(value) => setCourse({ ...course, level: value })}>
+              <Select
+                value={course.level}
+                onValueChange={(value) =>
+                  setCourse({ ...course, level: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -227,7 +267,9 @@ export default function EditCourse() {
               <Input
                 id="duration"
                 value={course.duration}
-                onChange={(e) => setCourse({ ...course, duration: e.target.value })}
+                onChange={(e) =>
+                  setCourse({ ...course, duration: e.target.value })
+                }
               />
             </div>
           </div>
@@ -237,7 +279,9 @@ export default function EditCourse() {
             <Textarea
               id="description"
               value={course.description}
-              onChange={(e) => setCourse({ ...course, description: e.target.value })}
+              onChange={(e) =>
+                setCourse({ ...course, description: e.target.value })
+              }
               rows={3}
             />
           </div>
@@ -246,7 +290,9 @@ export default function EditCourse() {
             <Label>Course Cover Image</Label>
             <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
               <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-2">Update course cover image</p>
+              <p className="text-sm text-muted-foreground mb-2">
+                Update course cover image
+              </p>
               <Button variant="outline">
                 <Upload className="h-4 w-4 mr-2" />
                 Choose New Image
@@ -270,13 +316,19 @@ export default function EditCourse() {
                   <CardTitle className="text-base">
                     Module {index + 1}: {module.title}
                   </CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => removeModule(module.id)}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => removeModule(module.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">{module.lessons.length} lessons</p>
+                <p className="text-sm text-muted-foreground">
+                  {module.lessons.length} lessons
+                </p>
               </CardContent>
             </Card>
           ))}
@@ -289,7 +341,9 @@ export default function EditCourse() {
               <Input
                 placeholder="Module title"
                 value={currentModule.title}
-                onChange={(e) => setCurrentModule({ ...currentModule, title: e.target.value })}
+                onChange={(e) =>
+                  setCurrentModule({ ...currentModule, title: e.target.value })
+                }
               />
               <Button onClick={addModule} disabled={!currentModule.title}>
                 <Plus className="h-4 w-4 mr-2" />
@@ -304,15 +358,23 @@ export default function EditCourse() {
       <Card>
         <CardHeader>
           <CardTitle>Course Quiz</CardTitle>
-          <CardDescription>Manage quiz questions for your course</CardDescription>
+          <CardDescription>
+            Manage quiz questions for your course
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {quizQuestions.map((question, index) => (
             <Card key={question.id} className="border-l-4 border-l-orange-500">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base">Question {index + 1}</CardTitle>
-                  <Button size="sm" variant="outline" onClick={() => removeQuizQuestion(question.id)}>
+                  <CardTitle className="text-base">
+                    Question {index + 1}
+                  </CardTitle>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => removeQuizQuestion(question.id)}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -324,7 +386,9 @@ export default function EditCourse() {
                     <div
                       key={optIndex}
                       className={`p-2 rounded border text-sm ${
-                        optIndex === question.correctAnswer ? "bg-green-50 border-green-200" : "bg-gray-50"
+                        optIndex === question.correctAnswer
+                          ? "bg-green-50 border-green-200"
+                          : "bg-gray-50"
                       }`}
                     >
                       {String.fromCharCode(65 + optIndex)}. {option}
@@ -345,7 +409,12 @@ export default function EditCourse() {
                 <Textarea
                   placeholder="Enter your question"
                   value={currentQuestion.question}
-                  onChange={(e) => setCurrentQuestion({ ...currentQuestion, question: e.target.value })}
+                  onChange={(e) =>
+                    setCurrentQuestion({
+                      ...currentQuestion,
+                      question: e.target.value,
+                    })
+                  }
                   rows={2}
                 />
               </div>
@@ -354,11 +423,15 @@ export default function EditCourse() {
                 <Label>Answer Options</Label>
                 {currentQuestion.options.map((option, index) => (
                   <div key={index} className="flex gap-2 items-center">
-                    <span className="text-sm font-medium w-6">{String.fromCharCode(65 + index)}.</span>
+                    <span className="text-sm font-medium w-6">
+                      {String.fromCharCode(65 + index)}.
+                    </span>
                     <Input
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
                       value={option}
-                      onChange={(e) => updateQuestionOption(index, e.target.value)}
+                      onChange={(e) =>
+                        updateQuestionOption(index, e.target.value)
+                      }
                     />
                   </div>
                 ))}
@@ -369,14 +442,21 @@ export default function EditCourse() {
                 <RadioGroup
                   value={currentQuestion.correctAnswer.toString()}
                   onValueChange={(value) =>
-                    setCurrentQuestion({ ...currentQuestion, correctAnswer: Number.parseInt(value) })
+                    setCurrentQuestion({
+                      ...currentQuestion,
+                      correctAnswer: Number.parseInt(value),
+                    })
                   }
                 >
                   {currentQuestion.options.map((option, index) => (
                     <div key={index} className="flex items-center space-x-2">
-                      <RadioGroupItem value={index.toString()} id={`correct-${index}`} />
+                      <RadioGroupItem
+                        value={index.toString()}
+                        id={`correct-${index}`}
+                      />
                       <Label htmlFor={`correct-${index}`} className="text-sm">
-                        {String.fromCharCode(65 + index)}. {option || `Option ${String.fromCharCode(65 + index)}`}
+                        {String.fromCharCode(65 + index)}.{" "}
+                        {option || `Option ${String.fromCharCode(65 + index)}`}
                       </Label>
                     </div>
                   ))}
@@ -385,7 +465,10 @@ export default function EditCourse() {
 
               <Button
                 onClick={addQuizQuestion}
-                disabled={!currentQuestion.question || !currentQuestion.options.every((opt) => opt.trim())}
+                disabled={
+                  !currentQuestion.question ||
+                  !currentQuestion.options.every((opt) => opt.trim())
+                }
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Add Question
@@ -406,5 +489,5 @@ export default function EditCourse() {
         </Button>
       </div>
     </div>
-  )
+  );
 }

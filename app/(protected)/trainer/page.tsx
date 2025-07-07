@@ -371,6 +371,9 @@ export default function TrainerDashboard() {
   const handleEditCourse = (courseId: number) => {
     router.push(`/trainer/edit/${courseId}`);
   };
+  const handleViewCourse = (courseId: number) => {
+    router.push(`/trainer/view/${courseId}`);
+  };
 
   const playVideo = (videoUrl: string) => {
     setSelectedVideo(videoUrl);
@@ -438,6 +441,15 @@ export default function TrainerDashboard() {
                     </div>
 
                     <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewCourse(course.id)}
+                        className="text-blue-600 hover:bg-blue-100 hover:text-blue-700 border-blue-300"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        Voir
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"

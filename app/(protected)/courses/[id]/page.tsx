@@ -266,7 +266,7 @@ export default function CourseDetail() {
                 </div>
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  {courseData.averageRating}
+                  {courseData.averageRating.toFixed(1)}
                 </div>
               </div>
 

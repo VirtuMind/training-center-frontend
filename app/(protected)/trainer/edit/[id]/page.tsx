@@ -349,8 +349,8 @@ export default function EditCourse() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="1">Web Development</SelectItem>
-                  <SelectItem value="2">Data Science</SelectItem>
-                  <SelectItem value="3">Marketing</SelectItem>
+                  <SelectItem value="2">Marketing</SelectItem>
+                  <SelectItem value="3">Data Science</SelectItem>
                   <SelectItem value="4">Design</SelectItem>
                   <SelectItem value="5">Cloud Computing</SelectItem>
                 </SelectContent>

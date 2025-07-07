@@ -584,8 +584,8 @@ export default function TrainerDashboard() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="1">Web Development</SelectItem>
-                        <SelectItem value="2">Data Science</SelectItem>
-                        <SelectItem value="3">Marketing</SelectItem>
+                        <SelectItem value="2">Marketing</SelectItem>
+                        <SelectItem value="3">Data Science</SelectItem>
                         <SelectItem value="4">Design</SelectItem>
                         <SelectItem value="5">Cloud Computing</SelectItem>
                       </SelectContent>
@@ -1051,7 +1051,6 @@ export default function TrainerDashboard() {
                 >
                   {loading ? "Création en cours..." : "Créer la Formation"}
                 </Button>
-                <Button variant="outline">Enregistrer comme Brouillon</Button>
               </div>
             </CardContent>
           </Card>
@@ -1089,9 +1088,9 @@ export default function TrainerDashboard() {
           <DialogHeader>
             <DialogTitle>Confirmer la Suppression</DialogTitle>
             <DialogDescription>
-              Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action
-              ne peut pas être annulée et supprimera définitivement
-              l&apos;utilisateur de la plateforme.
+              Êtes-vous sûr de vouloir supprimer cette formation ? Cette action
+              ne peut pas être annulée et supprimera définitivement la formation
+              de la plateforme.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -1107,7 +1106,7 @@ export default function TrainerDashboard() {
               onClick={confirmDeleteCourse}
               disabled={loading}
             >
-              {loading ? "Suppression en cours..." : "Supprimer l'Utilisateur"}
+              {loading ? "Suppression en cours..." : "Supprimer la formation"}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -38,7 +38,8 @@ import {
 } from "@/components/ui/dialog";
 import { Search, Plus, Edit, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { User, userApi } from "@/lib/api";
+import { userApi } from "@/lib/api";
+import { User } from "@/lib/types";
 
 export default function AdminDashboard() {
   const router = useRouter();

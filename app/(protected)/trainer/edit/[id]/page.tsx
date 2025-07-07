@@ -20,29 +20,26 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { ArrowLeft, Save, Upload, Plus, Trash2, ImageIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Save,
+  Upload,
+  Plus,
+  Trash2,
+  ImageIcon,
+  CheckCircle,
+  X,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { courseApi } from "@/lib/api";
-
-interface Module {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  duration: string;
-  type: "video" | "document";
-}
-
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-}
+import type {
+  CourseLevel,
+  CourseRequest,
+  CourseRequestUpdate,
+  ModuleRequest,
+  LessonRequest,
+  QuestionRequest,
+} from "@/lib/course-types";
 
 export default function EditCourse() {
   const params = useParams();
@@ -50,79 +47,238 @@ export default function EditCourse() {
   const courseId = Number.parseInt(params.id as string);
 
   const [loading, setLoading] = useState(false);
-  const [course, setCourse] = useState({
-    title: "React Development Fundamentals",
-    description:
-      "Master the fundamentals of React development including components, state management, and modern React patterns.",
-    category: "web-development",
-    duration: "8 weeks",
-    level: "beginner",
-    coverImage: "",
+  const [courseData, setCourseData] = useState<CourseRequestUpdate>({
+    title: "",
+    description: "",
+    categoryId: 1,
+    duration: "",
+    level: "BEGINNER",
+    coverImage: null,
+    coverImageUrl: "", // For existing courses, we might need to handle this separately
+    modules: [],
+    quiz: { questions: [] },
   });
-  const [modules, setModules] = useState<Module[]>([
-    {
-      id: "1",
-      title: "Introduction to React",
-      lessons: [
-        { id: "1", title: "What is React?", duration: "15 min", type: "video" },
-        {
-          id: "2",
-          title: "Setting up Development Environment",
-          duration: "20 min",
-          type: "video",
-        },
-      ],
-    },
-  ]);
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([
-    {
-      id: "1",
-      question: "What is JSX in React?",
-      options: [
-        "A JavaScript library",
-        "A syntax extension for JavaScript",
-        "A CSS framework",
-        "A database query language",
-      ],
-      correctAnswer: 1,
-    },
-  ]);
-  const [currentModule, setCurrentModule] = useState<Module>({
-    id: "",
+
+  const [currentModule, setCurrentModule] = useState<ModuleRequest>({
     title: "",
     lessons: [],
   });
-  const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion>({
-    id: "",
+
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionRequest>({
     question: "",
-    options: ["", "", "", ""],
-    correctAnswer: 0,
+    answers: [
+      { id: null, answer: "", correct: true },
+      { id: null, answer: "", correct: false },
+      { id: null, answer: "", correct: false },
+      { id: null, answer: "", correct: false },
+    ],
   });
 
-  useEffect(() => {
-    loadCourseData();
-  }, [courseId]);
-
+  // Load course data on component mount
   const loadCourseData = async () => {
     try {
-      const response = await courseApi.getCourseById(courseId);
-      if (response.success && response.data) {
-        // In a real app, you'd populate the form with the actual course data
-        console.log("Loaded course data:", response.data);
+      // Get trainer's courses to find the specific course
+      const courseResponse = await courseApi.getCourseDetailsForEditById(
+        courseId
+      );
+      if (courseResponse.success && courseResponse.data) {
+        const courseData = courseResponse.data;
+        setCourseData({
+          title: courseData.title,
+          description: courseData.description || "",
+          categoryId: courseData.categoryId,
+          duration: courseData.duration,
+          level: courseData.level,
+          coverImage: null, // Will need to handle existing image separately
+          coverImageUrl: courseData.coverImage || "", // Use existing image URL if available
+          modules: courseData.modules.map((module) => {
+            return {
+              id: module.id,
+              title: module.title,
+              lessons: module.lessons.map((lesson) => {
+                return {
+                  id: lesson.id,
+                  title: lesson.title,
+                  duration: lesson.duration,
+                  videoUrl: lesson.videoUrl, // Keep track of existing video URL
+                  // video will be set when user uploads a new video
+                };
+              }),
+            };
+          }),
+          quiz: courseData.quiz
+            ? {
+                questions: courseData.quiz.questions.map((question) => ({
+                  id: question.id,
+                  question: question.question,
+                  answers: question.answers.map((answer) => ({
+                    id: answer.id,
+                    answer: answer.answer,
+                    correct: answer.correct,
+                  })),
+                })),
+              }
+            : { questions: [] },
+        });
       }
     } catch (error) {
       console.error("Failed to load course data:", error);
+      alert("Failed to load course data");
     }
+  };
+
+  useEffect(() => {
+    loadCourseData();
+  }, [courseId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Course data update functions
+  const updateCourseField = (
+    field: keyof Omit<CourseRequest, "modules" | "quiz" | "coverImage">,
+    value: string | number
+  ) => {
+    setCourseData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setCoverImage = (file: File | null) => {
+    setCourseData((prev) => ({ ...prev, coverImage: file }));
+  };
+
+  // Module management functions
+  const addModule = () => {
+    if (currentModule.title.trim()) {
+      setCourseData((prev) => ({
+        ...prev,
+        modules: [...prev.modules, { ...currentModule, id: null }],
+      }));
+      setCurrentModule({ title: "", lessons: [] });
+    }
+  };
+
+  const removeModule = (moduleIndex: number) => {
+    setCourseData((prev) => ({
+      ...prev,
+      modules: prev.modules.filter((_, index) => index !== moduleIndex),
+    }));
+  };
+
+  // Lesson management functions
+  const addLesson = () => {
+    const newLesson: LessonRequest = {
+      id: null,
+      title: "",
+      duration: "",
+    };
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: [...prev.lessons, newLesson],
+    }));
+  };
+
+  const updateLessonInCurrentModule = (
+    lessonIndex: number,
+    field: keyof LessonRequest,
+    value: string | File
+  ) => {
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: prev.lessons.map((lesson, index) =>
+        index === lessonIndex ? { ...lesson, [field]: value } : lesson
+      ),
+    }));
+  };
+
+  const removeLessonFromCurrentModule = (lessonIndex: number) => {
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: prev.lessons.filter((_, index) => index !== lessonIndex),
+    }));
+  };
+
+  // Quiz management functions
+  const addQuizQuestion = () => {
+    if (
+      currentQuestion.question.trim() &&
+      currentQuestion.answers.every((answer) => answer.answer.trim())
+    ) {
+      setCourseData((prev) => ({
+        ...prev,
+        quiz: {
+          questions: [
+            ...(prev.quiz?.questions || []),
+            {
+              ...currentQuestion,
+              id: null,
+            },
+          ],
+        },
+      }));
+
+      setCurrentQuestion({
+        question: "",
+        answers: [
+          { id: null, answer: "", correct: true },
+          { id: null, answer: "", correct: false },
+          { id: null, answer: "", correct: false },
+          { id: null, answer: "", correct: false },
+        ],
+      });
+    }
+  };
+
+  const removeQuizQuestion = (questionIndex: number) => {
+    setCourseData((prev) => ({
+      ...prev,
+      quiz: {
+        questions: (prev.quiz?.questions || []).filter(
+          (_, index) => index !== questionIndex
+        ),
+      },
+    }));
+  };
+
+  const updateQuestionAnswer = (answerIndex: number, value: string) => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      answers: prev.answers.map((answer, index) =>
+        index === answerIndex ? { ...answer, answer: value } : answer
+      ),
+    }));
+  };
+
+  const setCorrectAnswer = (answerIndex: number) => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      answers: prev.answers.map((answer, index) => ({
+        ...answer,
+        correct: index === answerIndex,
+      })),
+    }));
   };
 
   const updateCourse = async () => {
     setLoading(true);
     try {
-      const courseData = {
-        ...course,
-        modules,
-        quizQuestions,
-      };
+      // Validate required fields
+      if (
+        !courseData.title ||
+        !courseData.level ||
+        !courseData.duration ||
+        !courseData.categoryId
+      ) {
+        throw new Error("Please fill all required fields");
+      }
+
+      if (courseData.modules.length === 0) {
+        throw new Error("Please add at least one module");
+      }
+
+      // Check if each module has at least one lesson
+      const emptyModules = courseData.modules.filter(
+        (m) => m.lessons.length === 0
+      );
+      if (emptyModules.length > 0) {
+        throw new Error("Each module must have at least one lesson");
+      }
 
       const response = await courseApi.updateCourse(courseId, courseData);
 
@@ -130,58 +286,22 @@ export default function EditCourse() {
         alert("Course updated successfully!");
         router.push("/trainer");
       } else {
-        throw new Error(response.error || "Course update failed");
+        const errorMessage =
+          typeof response.error === "string"
+            ? response.error
+            : response.error?.message || "Course update failed";
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Course update failed:", error);
-      alert("Course update failed. Please try again.");
+      const errorMessage =
+        error instanceof Error
+          ? error.message
+          : "Course update failed. Please try again.";
+      alert(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
-
-  const addModule = () => {
-    if (currentModule.title) {
-      const moduleWithId = {
-        ...currentModule,
-        id: Date.now().toString(),
-      };
-      setModules([...modules, moduleWithId]);
-      setCurrentModule({ id: "", title: "", lessons: [] });
-    }
-  };
-
-  const removeModule = (moduleId: string) => {
-    setModules(modules.filter((m) => m.id !== moduleId));
-  };
-
-  const addQuizQuestion = () => {
-    if (
-      currentQuestion.question &&
-      currentQuestion.options.every((opt) => opt.trim())
-    ) {
-      const questionWithId = {
-        ...currentQuestion,
-        id: Date.now().toString(),
-      };
-      setQuizQuestions([...quizQuestions, questionWithId]);
-      setCurrentQuestion({
-        id: "",
-        question: "",
-        options: ["", "", "", ""],
-        correctAnswer: 0,
-      });
-    }
-  };
-
-  const removeQuizQuestion = (questionId: string) => {
-    setQuizQuestions(quizQuestions.filter((q) => q.id !== questionId));
-  };
-
-  const updateQuestionOption = (index: number, value: string) => {
-    const newOptions = [...currentQuestion.options];
-    newOptions[index] = value;
-    setCurrentQuestion({ ...currentQuestion, options: newOptions });
   };
 
   return (
@@ -211,33 +331,27 @@ export default function EditCourse() {
               <Label htmlFor="title">Course Title</Label>
               <Input
                 id="title"
-                value={course.title}
-                onChange={(e) =>
-                  setCourse({ ...course, title: e.target.value })
-                }
+                value={courseData.title}
+                onChange={(e) => updateCourseField("title", e.target.value)}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="category">Category</Label>
               <Select
-                value={course.category}
+                value={courseData.categoryId.toString()}
                 onValueChange={(value) =>
-                  setCourse({ ...course, category: value })
+                  updateCourseField("categoryId", parseInt(value, 10))
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="web-development">
-                    Web Development
-                  </SelectItem>
-                  <SelectItem value="data-science">Data Science</SelectItem>
-                  <SelectItem value="marketing">Marketing</SelectItem>
-                  <SelectItem value="design">Design</SelectItem>
-                  <SelectItem value="cloud-computing">
-                    Cloud Computing
-                  </SelectItem>
+                  <SelectItem value="1">Web Development</SelectItem>
+                  <SelectItem value="2">Data Science</SelectItem>
+                  <SelectItem value="3">Marketing</SelectItem>
+                  <SelectItem value="4">Design</SelectItem>
+                  <SelectItem value="5">Cloud Computing</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -247,18 +361,18 @@ export default function EditCourse() {
             <div className="space-y-2">
               <Label htmlFor="level">Level</Label>
               <Select
-                value={course.level}
+                value={courseData.level}
                 onValueChange={(value) =>
-                  setCourse({ ...course, level: value })
+                  updateCourseField("level", value as CourseLevel)
                 }
               >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="beginner">Beginner</SelectItem>
-                  <SelectItem value="intermediate">Intermediate</SelectItem>
-                  <SelectItem value="advanced">Advanced</SelectItem>
+                  <SelectItem value="BEGINNER">Beginner</SelectItem>
+                  <SelectItem value="INTERMEDIATE">Intermediate</SelectItem>
+                  <SelectItem value="ADVANCED">Advanced</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -266,10 +380,8 @@ export default function EditCourse() {
               <Label htmlFor="duration">Duration</Label>
               <Input
                 id="duration"
-                value={course.duration}
-                onChange={(e) =>
-                  setCourse({ ...course, duration: e.target.value })
-                }
+                value={courseData.duration}
+                onChange={(e) => updateCourseField("duration", e.target.value)}
               />
             </div>
           </div>
@@ -278,26 +390,80 @@ export default function EditCourse() {
             <Label htmlFor="description">Description</Label>
             <Textarea
               id="description"
-              value={course.description}
-              onChange={(e) =>
-                setCourse({ ...course, description: e.target.value })
-              }
+              value={courseData.description || ""}
+              onChange={(e) => updateCourseField("description", e.target.value)}
               rows={3}
             />
           </div>
 
           <div className="space-y-2">
             <Label>Course Cover Image</Label>
-            <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-              <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-sm text-muted-foreground mb-2">
-                Update course cover image
-              </p>
-              <Button variant="outline">
-                <Upload className="h-4 w-4 mr-2" />
-                Choose New Image
-              </Button>
-            </div>
+            {courseData.coverImageUrl && (
+              <div className="mb-3">
+                <a
+                  href={`http://localhost:8080/files/${courseData.coverImageUrl}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-green-600 hover:text-green-800 underline"
+                >
+                  View current image
+                </a>
+              </div>
+            )}
+            {courseData.coverImage ? (
+              <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-8 w-8 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-800">
+                        {courseData.coverImage.name}
+                      </p>
+                      <p className="text-sm text-green-800">
+                        {(courseData.coverImage.size / 1024 / 1024).toFixed(2)}{" "}
+                        MB
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCoverImage(null!)}
+                    className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-600"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-sm text-muted-foreground mb-2">
+                  Upload a cover image for your course
+                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setCoverImage(file);
+                    }
+                  }}
+                  style={{ display: "none" }}
+                  id="cover-image-input"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() =>
+                    document.getElementById("cover-image-input")?.click()
+                  }
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Choose Image
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -309,8 +475,13 @@ export default function EditCourse() {
           <CardDescription>Manage your course curriculum</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {modules.map((module, index) => (
-            <Card key={module.id} className="border-l-4 border-l-primary">
+          {courseData.modules.map((module, index) => (
+            <Card
+              key={`module-${index}-${module.id || "new"}-${
+                module.title || "untitled"
+              }`}
+              className="border-l-4 border-l-primary"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
@@ -319,7 +490,7 @@ export default function EditCourse() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => removeModule(module.id)}
+                    onClick={() => removeModule(index)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -338,16 +509,131 @@ export default function EditCourse() {
               <CardTitle className="text-base">Add New Module</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <Input
-                placeholder="Module title"
-                value={currentModule.title}
-                onChange={(e) =>
-                  setCurrentModule({ ...currentModule, title: e.target.value })
+              <div className="space-y-2">
+                <Label htmlFor="module-title">Module Title</Label>
+                <Input
+                  id="module-title"
+                  placeholder="Enter module title"
+                  value={currentModule.title}
+                  onChange={(e) =>
+                    setCurrentModule({
+                      ...currentModule,
+                      title: e.target.value,
+                    })
+                  }
+                />
+              </div>
+
+              {/* Lessons in Current Module */}
+              <div className="space-y-2">
+                <Label>Lessons</Label>
+                {currentModule.lessons.map((lesson, lessonIndex) => (
+                  <div
+                    key={`lesson-${lessonIndex}-${lesson.id || "new"}-${
+                      lesson.title || "untitled"
+                    }`}
+                    className="grid gap-2 md:grid-cols-4 p-3 border rounded"
+                  >
+                    <Input
+                      placeholder="Lesson title"
+                      value={lesson.title}
+                      onChange={(e) =>
+                        updateLessonInCurrentModule(
+                          lessonIndex,
+                          "title",
+                          e.target.value
+                        )
+                      }
+                    />
+                    <Input
+                      placeholder="Duration (e.g., 15 min)"
+                      value={lesson.duration || ""}
+                      onChange={(e) =>
+                        updateLessonInCurrentModule(
+                          lessonIndex,
+                          "duration",
+                          e.target.value
+                        )
+                      }
+                    />
+                    <div className="space-y-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => {
+                          const input = document.createElement("input");
+                          input.type = "file";
+                          input.accept = "video/*";
+                          input.onchange = (e) => {
+                            const file = (e.target as HTMLInputElement)
+                              .files?.[0];
+                            if (file) {
+                              updateLessonInCurrentModule(
+                                lessonIndex,
+                                "video",
+                                file
+                              );
+                            }
+                          };
+                          input.click();
+                        }}
+                        className={
+                          lesson.video || lesson.videoUrl
+                            ? "bg-green-100 border-green-200 text-green-800 hover:bg-green-200 hover:text-green-800"
+                            : ""
+                        }
+                      >
+                        <Upload className="h-4 w-4 mr-1" />
+                        {lesson.video
+                          ? lesson.video instanceof File
+                            ? lesson.video.name.substring(0, 15) + "..."
+                            : "Video uploaded"
+                          : lesson.videoUrl
+                          ? "Update Video"
+                          : "Upload Video"}
+                      </Button>
+                      {lesson.videoUrl && !lesson.video && (
+                        <p className="text-xs text-muted-foreground">
+                          <a
+                            href={lesson.videoUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800 underline"
+                          >
+                            Current video
+                          </a>
+                        </p>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => removeLessonFromCurrentModule(lessonIndex)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={addLesson}
+                  className="w-full bg-transparent"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Lesson
+                </Button>
+              </div>
+
+              <Button
+                onClick={addModule}
+                disabled={
+                  !currentModule.title || currentModule.lessons.length === 0
                 }
-              />
-              <Button onClick={addModule} disabled={!currentModule.title}>
-                <Plus className="h-4 w-4 mr-2" />
-                Add Module
+                className="w-full"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                Save Module
               </Button>
             </CardContent>
           </Card>
@@ -363,8 +649,13 @@ export default function EditCourse() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {quizQuestions.map((question, index) => (
-            <Card key={question.id} className="border-l-4 border-l-orange-500">
+          {courseData.quiz?.questions.map((question, index) => (
+            <Card
+              key={`question-${
+                question.id || index
+              }-${question.question.substring(0, 20)}`}
+              className="border-l-4 border-l-orange-500"
+            >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-base">
@@ -373,7 +664,7 @@ export default function EditCourse() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => removeQuizQuestion(question.id)}
+                    onClick={() => removeQuizQuestion(index)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -382,16 +673,21 @@ export default function EditCourse() {
               <CardContent>
                 <p className="font-medium mb-2">{question.question}</p>
                 <div className="grid gap-2">
-                  {question.options.map((option, optIndex) => (
+                  {question.answers.map((answer, optIndex) => (
                     <div
                       key={optIndex}
                       className={`p-2 rounded border text-sm ${
-                        optIndex === question.correctAnswer
+                        answer.correct
                           ? "bg-green-50 border-green-200"
                           : "bg-gray-50"
                       }`}
                     >
-                      {String.fromCharCode(65 + optIndex)}. {option}
+                      {String.fromCharCode(65 + optIndex)}. {answer.answer}
+                      {answer.correct && (
+                        <span className="ml-2 text-green-600 text-xs">
+                          ✓ Correct
+                        </span>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -421,16 +717,16 @@ export default function EditCourse() {
 
               <div className="space-y-2">
                 <Label>Answer Options</Label>
-                {currentQuestion.options.map((option, index) => (
+                {currentQuestion.answers.map((answer, index) => (
                   <div key={index} className="flex gap-2 items-center">
                     <span className="text-sm font-medium w-6">
                       {String.fromCharCode(65 + index)}.
                     </span>
                     <Input
                       placeholder={`Option ${String.fromCharCode(65 + index)}`}
-                      value={option}
+                      value={answer.answer}
                       onChange={(e) =>
-                        updateQuestionOption(index, e.target.value)
+                        updateQuestionAnswer(index, e.target.value)
                       }
                     />
                   </div>
@@ -440,15 +736,14 @@ export default function EditCourse() {
               <div className="space-y-2">
                 <Label>Correct Answer</Label>
                 <RadioGroup
-                  value={currentQuestion.correctAnswer.toString()}
+                  value={currentQuestion.answers
+                    .findIndex((a) => a.correct)
+                    .toString()}
                   onValueChange={(value) =>
-                    setCurrentQuestion({
-                      ...currentQuestion,
-                      correctAnswer: Number.parseInt(value),
-                    })
+                    setCorrectAnswer(parseInt(value, 10))
                   }
                 >
-                  {currentQuestion.options.map((option, index) => (
+                  {currentQuestion.answers.map((answer, index) => (
                     <div key={index} className="flex items-center space-x-2">
                       <RadioGroupItem
                         value={index.toString()}
@@ -456,7 +751,8 @@ export default function EditCourse() {
                       />
                       <Label htmlFor={`correct-${index}`} className="text-sm">
                         {String.fromCharCode(65 + index)}.{" "}
-                        {option || `Option ${String.fromCharCode(65 + index)}`}
+                        {answer.answer ||
+                          `Option ${String.fromCharCode(65 + index)}`}
                       </Label>
                     </div>
                   ))}
@@ -467,7 +763,9 @@ export default function EditCourse() {
                 onClick={addQuizQuestion}
                 disabled={
                   !currentQuestion.question ||
-                  !currentQuestion.options.every((opt) => opt.trim())
+                  !currentQuestion.answers.every((answer) =>
+                    answer.answer.trim()
+                  )
                 }
               >
                 <Plus className="h-4 w-4 mr-2" />

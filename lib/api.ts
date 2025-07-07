@@ -1,80 +1,27 @@
 const API_BASE_URL = "http://localhost:8080/api"; // Backend api spring
 // Interface for authentication
-export interface AuthResponse {
-  accessToken: string;
-  user: User; // Use the same User interface
-}
-export interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: {
-    code: string;
-    message: string;
-    details?: string[];
-  };
-  timestamp: string;
-}
 
-export interface User {
-  id: number;
-  fullname: string;
-  username: string;
-  role: "STUDENT" | "TRAINER" | "ADMIN";
-  createdAt: string;
-}
+// Import course types from course-types.ts
+import {
+  CourseRequest,
+  CourseRequestUpdate,
+  CourseResponse,
+  QuizResponse,
+} from "./course-types";
+import {
+  ApiResponse,
+  AuthResponse,
+  DashboardEnrollment,
+  Enrollment,
+  NewUser,
+  ReviewRequest,
+  ReviewResponse,
+  StudentProgressResponse,
+  TrainerCourse,
+  User,
+} from "./types";
 
-export interface NewUser {
-  fullname: string;
-  username: string;
-  role: "STUDENT" | "TRAINER" | "ADMIN";
-  password: string; // Password is required for new users
-}
-
-export interface Course {
-  id: number;
-  title: string;
-  description: string;
-  category: string;
-  level: string;
-  duration: string;
-  students: number;
-  rating: number;
-  instructor: string;
-  modules?: Module[];
-  quizQuestions?: QuizQuestion[];
-  coverImage?: string;
-}
-
-export interface Module {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-export interface Lesson {
-  id: string;
-  title: string;
-  duration: string;
-  type: "video" | "document";
-  content?: string;
-  videoUrl?: string;
-  documentUrl?: string;
-}
-
-export interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-}
-
-export interface Enrollment {
-  userId: number;
-  courseId: number;
-  enrolledAt: string;
-  progress: number;
-}
+// Keep TrainerCourse type in api.ts since it's used for listing trainer's courses
 
 // Generic API call function - simple authentication with redirect on 401
 async function apiCall<T>(
@@ -161,65 +108,319 @@ export const userApi = {
 
 // Course API functions
 export const courseApi = {
-  getCourses: () => apiCall<Course[]>("/posts"), // Using posts as course placeholder
-  getCourseById: (id: number) => apiCall<Course>(`/posts/${id}`),
-  createCourse: (courseData: Omit<Course, "id">) =>
-    apiCall<Course>("/posts", {
-      method: "POST",
-      body: JSON.stringify(courseData),
-    }),
-  updateCourse: (id: number, courseData: Partial<Course>) =>
-    apiCall<Course>(`/posts/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(courseData),
-    }),
+  getCourses: () => apiCall<CourseResponse[]>("/courses"),
+  getCourseById: (id: number) => apiCall<CourseResponse>(`/courses/${id}`),
+  getCoursesByTrainerId: (trainerId: number) =>
+    apiCall<TrainerCourse[]>(`/courses/trainer/${trainerId}`),
+  getCourseDetailsForEditById: (courseId: number) =>
+    apiCall<CourseResponse>(`/courses/trainer/details/${courseId}`),
+
+  // Create course with embedded files
+  createCourse: async (courseRequest: CourseRequest) => {
+    try {
+      const { getAccessToken } = await import("@/lib/utils");
+      const token = getAccessToken();
+
+      const formData = new FormData();
+
+      // Validate that coverImage exists
+      if (!courseRequest.coverImage) {
+        throw new Error("Cover image is required");
+      }
+
+      // Add cover image
+      formData.append("coverImage", courseRequest.coverImage);
+
+      // Add basic course data (excluding coverImage since it's a file)
+      formData.append("title", courseRequest.title);
+      if (courseRequest.description) {
+        formData.append("description", courseRequest.description);
+      }
+      formData.append("level", courseRequest.level);
+      formData.append("duration", courseRequest.duration);
+      formData.append("categoryId", courseRequest.categoryId.toString());
+
+      // Add modules as JSON (excluding video files)
+      const modulesData = courseRequest.modules.map((module) => ({
+        id: module.id,
+        title: module.title,
+        lessons: module.lessons.map((lesson) => ({
+          id: lesson.id,
+          title: lesson.title,
+          duration: lesson.duration || "",
+          // video is handled separately
+        })),
+      }));
+      formData.append("modules", JSON.stringify(modulesData));
+
+      // Add lesson videos
+      courseRequest.modules.forEach((module, moduleIndex) => {
+        module.lessons.forEach((lesson, lessonIndex) => {
+          if (lesson.video) {
+            // Use a naming convention that the backend can parse
+            formData.append(
+              `video_${moduleIndex}_${lessonIndex}`, // ← key Spring will see
+              lesson.video,
+              lesson.video.name
+            );
+          }
+        });
+      });
+
+      // Add quiz if present
+      if (courseRequest.quiz && courseRequest.quiz.questions.length > 0) {
+        const quizData = {
+          questions: courseRequest.quiz.questions.map((question) => ({
+            id: question.id,
+            question: question.question,
+            answers: question.answers.map((answer) => ({
+              id: answer.id,
+              answer: answer.answer,
+              correct: answer.correct,
+            })),
+          })),
+        };
+        formData.append("quiz", JSON.stringify(quizData));
+      }
+
+      // log the formData for debugging
+      console.log("formData:", Object.fromEntries(formData.entries()));
+
+      // Make the request
+      const response = await fetch(`${API_BASE_URL}/courses`, {
+        method: "POST",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+
+      // Handle unauthorized
+      if (response.status === 401) {
+        const { removeAuthTokens } = await import("@/lib/utils");
+        removeAuthTokens();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      }
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        return responseData;
+      } else {
+        return {
+          success: false,
+          error: {
+            code: response.status.toString(),
+            message:
+              responseData.message || `HTTP error! status: ${response.status}`,
+            details: responseData.details,
+          },
+          timestamp: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      console.error("API call failed:", error);
+      return {
+        success: false,
+        error: {
+          code: "NETWORK_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+  },
+
+  // Update course with embedded files
+  updateCourse: async (
+    id: number,
+    courseRequest: Partial<CourseRequestUpdate>
+  ) => {
+    try {
+      const { getAccessToken } = await import("@/lib/utils");
+      const token = getAccessToken();
+
+      const formData = new FormData();
+
+      // Add cover image if provided
+      if (courseRequest.coverImage) {
+        formData.append("coverImage", courseRequest.coverImage);
+      }
+
+      // Add basic course data (excluding coverImage since it's a file)
+      if (courseRequest.title) {
+        formData.append("title", courseRequest.title);
+      }
+      if (courseRequest.description) {
+        formData.append("description", courseRequest.description);
+      }
+      if (courseRequest.level) {
+        formData.append("level", courseRequest.level);
+      }
+      if (courseRequest.duration) {
+        formData.append("duration", courseRequest.duration);
+      }
+      if (courseRequest.categoryId) {
+        formData.append("categoryId", courseRequest.categoryId.toString());
+      }
+      if (courseRequest.coverImageUrl) {
+        formData.append("coverImageUrl", courseRequest.coverImageUrl);
+      }
+      if (courseRequest.coverImage) {
+        formData.append("coverImage", courseRequest.coverImage);
+      }
+
+      // Add modules as JSON (excluding video files)
+      if (courseRequest.modules) {
+        const modulesData = courseRequest.modules.map((module) => ({
+          id: module.id,
+          title: module.title,
+          lessons: module.lessons.map((lesson) => ({
+            id: lesson.id,
+            title: lesson.title,
+            duration: lesson.duration || "",
+            // video is handled separately
+          })),
+        }));
+        formData.append("modules", JSON.stringify(modulesData));
+
+        // Add lesson videos
+        courseRequest.modules.forEach((module, moduleIndex) => {
+          module.lessons.forEach((lesson, lessonIndex) => {
+            if (lesson.video) {
+              // Use a naming convention that the backend can parse
+              formData.append(
+                `video_${moduleIndex}_${lessonIndex}`, // ← key Spring will see
+                lesson.video,
+                lesson.video.name
+              );
+            }
+          });
+        });
+      }
+
+      // Add quiz if present
+      if (courseRequest.quiz && courseRequest.quiz.questions.length > 0) {
+        const quizData = {
+          questions: courseRequest.quiz.questions.map((question) => ({
+            id: question.id,
+            question: question.question,
+            answers: question.answers.map((answer) => ({
+              id: answer.id,
+              answer: answer.answer,
+              correct: answer.correct,
+            })),
+          })),
+        };
+        formData.append("quiz", JSON.stringify(quizData));
+      }
+
+      // log the formData for debugging
+      console.log(
+        "updateCourse formData:",
+        Object.fromEntries(formData.entries())
+      );
+
+      // Make the request
+      const response = await fetch(`${API_BASE_URL}/courses/${id}`, {
+        method: "PUT",
+        headers: {
+          ...(token && { Authorization: `Bearer ${token}` }),
+        },
+        body: formData,
+      });
+
+      // Handle unauthorized
+      if (response.status === 401) {
+        const { removeAuthTokens } = await import("@/lib/utils");
+        removeAuthTokens();
+        if (typeof window !== "undefined") {
+          window.location.href = "/login";
+        }
+      }
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        return responseData;
+      } else {
+        return {
+          success: false,
+          error: {
+            code: response.status.toString(),
+            message:
+              responseData.message || `HTTP error! status: ${response.status}`,
+            details: responseData.details,
+          },
+          timestamp: new Date().toISOString(),
+        };
+      }
+    } catch (error) {
+      console.error("API call failed:", error);
+      return {
+        success: false,
+        error: {
+          code: "NETWORK_ERROR",
+          message: error instanceof Error ? error.message : "Unknown error",
+        },
+        timestamp: new Date().toISOString(),
+      };
+    }
+  },
+
   deleteCourse: (id: number) =>
-    apiCall<void>(`/posts/${id}`, {
+    apiCall<void>(`/courses/${id}`, {
       method: "DELETE",
     }),
 };
 
 // Enrollment API functions
 export const enrollmentApi = {
-  getUserEnrollments: (userId: number) =>
-    apiCall<Enrollment[]>(`/users/${userId}/albums`),
-  enrollUser: (enrollmentData: Omit<Enrollment, "enrolledAt">) =>
-    apiCall<Enrollment>("/albums", {
-      method: "POST",
-      body: JSON.stringify({
-        ...enrollmentData,
-        enrolledAt: new Date().toISOString(),
-      }),
+  getStudentEnrollments: () =>
+    apiCall<DashboardEnrollment[]>(`/enrollments/student`, {
+      method: "GET",
     }),
-  updateProgress: (userId: number, courseId: number, progress: number) =>
-    apiCall<Enrollment>(`/albums/${courseId}`, {
-      method: "PUT",
-      body: JSON.stringify({ userId, courseId, progress }),
+  enrollUser: (courseId: number) =>
+    apiCall<Enrollment>(`/enrollments/${courseId}`, {
+      method: "POST",
+    }),
+  getStudentEnrollmentsProgress: () =>
+    apiCall<DashboardEnrollment[]>(`/enrollments/progress/student`, {
+      method: "GET",
+    }),
+
+  getStudentsProgressByTrainerId: (trainerId: number) =>
+    apiCall<StudentProgressResponse[]>(
+      `/enrollments/progress/trainer/${trainerId}`
+    ),
+
+  // Toggle lesson completion status
+  toggleLessonCompletion: (lessonId: number) =>
+    apiCall<{ lessonId: number; completed: boolean }>(
+      `/enrollments/lessons/toggle-completion/${lessonId}`,
+      {
+        method: "POST",
+      }
+    ),
+  submitReview: (reviewRequest: ReviewRequest) =>
+    apiCall<ReviewResponse>(`/reviews`, {
+      method: "POST",
+      body: JSON.stringify(reviewRequest),
     }),
 };
 
 // Quiz API functions
 export const quizApi = {
   getQuizByCourseId: (courseId: number) =>
-    apiCall<QuizQuestion[]>(`/posts/${courseId}/comments`),
-  submitQuizAnswers: (courseId: number, answers: number[]) =>
-    apiCall<{ score: number; results: unknown[] }>("/comments", {
-      method: "POST",
-      body: JSON.stringify({ courseId, answers }),
+    apiCall<QuizResponse>(`/quiz/${courseId}`, {
+      method: "GET",
     }),
-};
-
-// File upload API function
-export const uploadApi = {
-  uploadFile: (file: File, type: "image" | "video" | "document") =>
-    apiCall<{ url: string }>("/upload", {
+  submitQuizAnswers: (courseId: number, score: number) =>
+    apiCall<object>(`/quiz/submit`, {
       method: "POST",
-      body: JSON.stringify({
-        filename: file.name,
-        size: file.size,
-        type: file.type,
-        uploadType: type,
-      }),
+      body: JSON.stringify({ courseId: courseId, score: score }),
     }),
 };
 

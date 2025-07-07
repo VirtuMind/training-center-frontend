@@ -147,7 +147,12 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 {/* Search can be added here */}
               </div>
               <div className="flex items-center gap-x-4 lg:gap-x-6">
-                <Button variant="outline" size="icon" onClick={handleLogout}>
+                <Button
+                  className="bg-red-50 border-red-200 text-red-400 hover:bg-red-100 hover:text-red-700"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleLogout}
+                >
                   <LogOut className="h-4 w-4" />
                   <span className="sr-only">Log out</span>
                 </Button>

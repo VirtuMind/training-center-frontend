@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -30,9 +30,6 @@ import {
 } from "@/components/ui/dialog";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
-  Users,
-  BookOpen,
-  TrendingUp,
   Plus,
   Edit,
   Eye,
@@ -46,270 +43,285 @@ import {
   CheckCircle,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { courseApi, uploadApi } from "@/lib/api";
-
-const trainerCourses = [
-  {
-    id: 1,
-    title: "React Development Fundamentals",
-    category: "Web Development",
-    students: 45,
-    avgProgress: 68,
-    avgRating: 4.8,
-    lastUpdated: "2024-01-10",
-  },
-  {
-    id: 2,
-    title: "Advanced JavaScript Concepts",
-    category: "Web Development",
-    students: 32,
-    avgProgress: 45,
-    avgRating: 4.9,
-    lastUpdated: "2024-01-08",
-  },
-  {
-    id: 3,
-    title: "Node.js Backend Development",
-    category: "Web Development",
-    students: 28,
-    avgProgress: 72,
-    avgRating: 4.7,
-    lastUpdated: "2024-01-05",
-  },
-];
-
-const studentProgress = [
-  {
-    id: 1,
-    name: "Alex Johnson",
-    email: "alex@example.com",
-    course: "React Development Fundamentals",
-    progress: 85,
-    quizAverage: 92,
-  },
-  {
-    id: 2,
-    name: "Sarah Chen",
-    email: "sarah@example.com",
-    course: "React Development Fundamentals",
-    progress: 45,
-    quizAverage: 78,
-  },
-  {
-    id: 3,
-    name: "Mike Rodriguez",
-    email: "mike@example.com",
-    course: "Advanced JavaScript Concepts",
-    progress: 92,
-    quizAverage: 95,
-  },
-];
-
-interface Module {
-  id: string;
-  title: string;
-  lessons: Lesson[];
-}
-
-interface Lesson {
-  id: string;
-  title: string;
-  duration: string;
-  type: "video" | "document";
-  content?: string;
-  videoUrl?: string;
-  documentUrl?: string;
-}
-
-interface QuizQuestion {
-  id: string;
-  question: string;
-  options: string[];
-  correctAnswer: number;
-}
+import { courseApi, enrollmentApi } from "@/lib/api";
+import { StudentProgressResponse, TrainerCourse } from "@/lib/types";
+import type {
+  CourseLevel,
+  CourseRequest,
+  ModuleRequest,
+  LessonRequest,
+  QuestionRequest,
+} from "@/lib/course-types";
+import { AUTH_USER_KEY } from "@/lib/utils";
 
 export default function TrainerDashboard() {
   const router = useRouter();
   const [selectedCourse, setSelectedCourse] = useState("all");
   const [activeTab, setActiveTab] = useState("courses");
-  const [newCourse, setNewCourse] = useState({
+  const [trainerCourses, setTrainerCourses] = useState<TrainerCourse[]>([]);
+  const [studentsProgress, setStudentsProgress] = useState<
+    StudentProgressResponse[]
+  >([]);
+
+  // Fetch students progress on mount
+  useEffect(() => {
+    const fetchStudentsProgress = async () => {
+      try {
+        const authUser = localStorage.getItem(AUTH_USER_KEY);
+        const trainerId = authUser ? JSON.parse(authUser).id : null;
+
+        const response = await enrollmentApi.getStudentsProgressByTrainerId(
+          trainerId
+        );
+        if (response.success) {
+          setStudentsProgress(response.data || []);
+        } else {
+          console.error("Failed to fetch students progress:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching students progress:", error);
+      }
+    };
+    fetchStudentsProgress();
+  }, []);
+
+  // Fetch trainer courses on mount
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const authUser = localStorage.getItem(AUTH_USER_KEY);
+        const trainerId = authUser ? JSON.parse(authUser).id : null;
+
+        const response = await courseApi.getCoursesByTrainerId(trainerId);
+        if (response.success) {
+          setTrainerCourses(response.data || []);
+        } else {
+          console.error("Failed to fetch courses:", response.error);
+        }
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Course state matching the backend structure
+  const [courseData, setCourseData] = useState<CourseRequest>({
     title: "",
     description: "",
-    category: "",
+    categoryId: 1,
     duration: "",
-    level: "",
-    coverImage: "",
+    level: "BEGINNER",
+    coverImage: null, // Will be set when file is selected
+    modules: [],
+    quiz: { questions: [] },
   });
-  const [modules, setModules] = useState<Module[]>([]);
-  const [currentModule, setCurrentModule] = useState<Module>({
-    id: "",
+  const [currentModule, setCurrentModule] = useState<ModuleRequest>({
     title: "",
     lessons: [],
   });
-  const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
-  const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion>({
-    id: "",
+
+  const [currentQuestion, setCurrentQuestion] = useState<QuestionRequest>({
     question: "",
-    options: ["", "", "", ""],
-    correctAnswer: 0,
+    answers: [
+      { id: null, answer: "", correct: true },
+      { id: null, answer: "", correct: false },
+      { id: null, answer: "", correct: false },
+      { id: null, answer: "", correct: false },
+    ],
   });
+
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<{ [key: string]: File }>(
-    {}
-  );
-  const totalStudents = trainerCourses.reduce(
-    (sum, course) => sum + course.students,
-    0
-  );
-  const avgRating =
-    trainerCourses.reduce((sum, course) => sum + course.avgRating, 0) /
-    trainerCourses.length;
-  // Filter students based on selected course - Fixed filtering logic
+  // Filter students based on selected course
   const filteredStudents =
     selectedCourse === "all"
-      ? studentProgress
-      : studentProgress.filter((student) => student.course === selectedCourse);
+      ? studentsProgress
+      : studentsProgress.filter(
+          (progress) => progress.courseTitle === selectedCourse
+        );
 
+  // Course data update functions
+  const updateCourseField = (
+    field: keyof Omit<CourseRequest, "modules" | "quiz" | "coverImage">,
+    value: string | number
+  ) => {
+    setCourseData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const setCoverImage = (file: File) => {
+    setCourseData((prev) => ({ ...prev, coverImage: file }));
+  };
+
+  // Module management functions
   const addModule = () => {
-    if (currentModule.title) {
-      const moduleWithId = {
-        ...currentModule,
-        id: Date.now().toString(),
-      };
-      setModules([...modules, moduleWithId]);
-      setCurrentModule({ id: "", title: "", lessons: [] });
+    if (currentModule.title.trim()) {
+      setCourseData((prev) => ({
+        ...prev,
+        modules: [...prev.modules, { ...currentModule }],
+      }));
+      setCurrentModule({ title: "", lessons: [] });
     }
   };
 
+  const removeModule = (moduleIndex: number) => {
+    setCourseData((prev) => ({
+      ...prev,
+      modules: prev.modules.filter((_, index) => index !== moduleIndex),
+    }));
+  };
+
+  // Lesson management functions
   const addLesson = () => {
-    const newLesson: Lesson = {
-      id: Date.now().toString(),
+    const newLesson: LessonRequest = {
       title: "",
       duration: "",
-      type: "video",
     };
-    setCurrentModule({
-      ...currentModule,
-      lessons: [...currentModule.lessons, newLesson],
-    });
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: [...prev.lessons, newLesson],
+    }));
   };
 
-  const updateLesson = (
-    lessonId: string,
-    field: keyof Lesson,
-    value: string
+  const updateLessonInCurrentModule = (
+    lessonIndex: number,
+    field: keyof LessonRequest,
+    value: string | File
   ) => {
-    setCurrentModule({
-      ...currentModule,
-      lessons: currentModule.lessons.map((lesson) =>
-        lesson.id === lessonId ? { ...lesson, [field]: value } : lesson
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: prev.lessons.map((lesson, index) =>
+        index === lessonIndex ? { ...lesson, [field]: value } : lesson
       ),
-    });
+    }));
   };
 
-  const removeLesson = (lessonId: string) => {
-    setCurrentModule({
-      ...currentModule,
-      lessons: currentModule.lessons.filter((lesson) => lesson.id !== lessonId),
-    });
+  const removeLessonFromCurrentModule = (lessonIndex: number) => {
+    setCurrentModule((prev) => ({
+      ...prev,
+      lessons: prev.lessons.filter((_, index) => index !== lessonIndex),
+    }));
   };
 
+  // Quiz management functions
   const addQuizQuestion = () => {
     if (
-      currentQuestion.question &&
-      currentQuestion.options.every((opt) => opt.trim())
+      currentQuestion.question.trim() &&
+      currentQuestion.answers.every((answer) => answer.answer.trim())
     ) {
-      const questionWithId = {
-        ...currentQuestion,
-        id: Date.now().toString(),
-      };
-      setQuizQuestions([...quizQuestions, questionWithId]);
+      setCourseData((prev) => ({
+        ...prev,
+        quiz: {
+          questions: [...(prev.quiz?.questions || []), { ...currentQuestion }],
+        },
+      }));
+
       setCurrentQuestion({
-        id: "",
         question: "",
-        options: ["", "", "", ""],
-        correctAnswer: 0,
+        answers: [
+          { id: null, answer: "", correct: true },
+          { id: null, answer: "", correct: false },
+          { id: null, answer: "", correct: false },
+          { id: null, answer: "", correct: false },
+        ],
       });
     }
   };
 
-  const removeQuizQuestion = (questionId: string) => {
-    setQuizQuestions(quizQuestions.filter((q) => q.id !== questionId));
+  const removeQuizQuestion = (questionIndex: number) => {
+    setCourseData((prev) => ({
+      ...prev,
+      quiz: {
+        questions: (prev.quiz?.questions || []).filter(
+          (_, index) => index !== questionIndex
+        ),
+      },
+    }));
   };
 
-  const updateQuestionOption = (index: number, value: string) => {
-    const newOptions = [...currentQuestion.options];
-    newOptions[index] = value;
-    setCurrentQuestion({ ...currentQuestion, options: newOptions });
+  const updateQuestionAnswer = (answerIndex: number, value: string) => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      answers: prev.answers.map((answer, index) =>
+        index === answerIndex ? { ...answer, answer: value } : answer
+      ),
+    }));
   };
 
-  const handleFileUpload = async (
-    file: File,
-    type: "image" | "video" | "document",
-    key: string
-  ) => {
-    try {
-      // Store the file immediately for UI feedback
-      setUploadedFiles((prev) => ({ ...prev, [key]: file }));
-
-      const response = await uploadApi.uploadFile(file, type);
-      if (response.success && response.data) {
-        return response.data.url;
-      }
-      throw new Error(response.error || "Upload failed");
-    } catch (error) {
-      console.error("File upload failed:", error);
-      // Return mock URL for demo
-      return `/mock-uploads/${file.name}`;
-    }
-  };
-
-  const removeUploadedFile = (key: string) => {
-    const newFiles = { ...uploadedFiles };
-    delete newFiles[key];
-    setUploadedFiles(newFiles);
+  const setCorrectAnswer = (answerIndex: number) => {
+    setCurrentQuestion((prev) => ({
+      ...prev,
+      answers: prev.answers.map((answer, index) => ({
+        ...answer,
+        correct: index === answerIndex,
+      })),
+    }));
   };
 
   const createCourse = async () => {
     setLoading(true);
     try {
-      const courseData = {
-        title: newCourse.title,
-        description: newCourse.description,
-        category: newCourse.category,
-        level: newCourse.level,
-        duration: newCourse.duration,
-        coverImage: newCourse.coverImage,
-        modules,
-        quizQuestions,
-        instructor: "Current Trainer", // Would come from auth context
-        students: 0,
-        rating: 0,
-      };
+      // Validate required fields
+      if (
+        !courseData.title ||
+        !courseData.level ||
+        !courseData.duration ||
+        !courseData.coverImage
+      ) {
+        throw new Error("Please fill all required fields");
+      }
 
+      if (courseData.modules.length === 0) {
+        throw new Error("Please add at least one module");
+      }
+
+      // Check if each module has at least one lesson
+      const emptyModules = courseData.modules.filter(
+        (m) => m.lessons.length === 0
+      );
+      if (emptyModules.length > 0) {
+        throw new Error("Each module must have at least one lesson");
+      }
+
+      // Make API call with course data
       const response = await courseApi.createCourse(courseData);
 
       if (response.success) {
         alert("Course created successfully!");
-        setNewCourse({
+        // Reset form
+        setCourseData({
           title: "",
           description: "",
-          category: "",
+          categoryId: 1,
           duration: "",
-          level: "",
-          coverImage: "",
+          level: "BEGINNER",
+          coverImage: null,
+          modules: [],
+          quiz: { questions: [] },
         });
-        setModules([]);
-        setQuizQuestions([]);
-        setUploadedFiles({});
+        setCurrentModule({ title: "", lessons: [] });
+        setCurrentQuestion({
+          question: "",
+          answers: [
+            { id: null, answer: "", correct: true },
+            { id: null, answer: "", correct: false },
+            { id: null, answer: "", correct: false },
+            { id: null, answer: "", correct: false },
+          ],
+        });
         setActiveTab("courses");
       } else {
-        throw new Error(response.error || "Course creation failed");
+        const errorMessage =
+          response.error?.message || "Course creation failed";
+        throw new Error(errorMessage);
       }
-    } catch (error) {
+    } catch (error: unknown) {
       console.error("Course creation failed:", error);
-      alert("Course creation failed. Please try again.");
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Course creation failed. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -317,10 +329,6 @@ export default function TrainerDashboard() {
 
   const handleNewCourse = () => {
     setActiveTab("create");
-  };
-
-  const handleViewCourse = (courseId: number) => {
-    router.push(`/courses/${courseId}`);
   };
 
   const handleEditCourse = (courseId: number) => {
@@ -367,27 +375,32 @@ export default function TrainerDashboard() {
                   <div className="flex items-center justify-between">
                     <div>
                       <CardTitle className="text-lg">{course.title}</CardTitle>
+                      <CardDescription>
+                        Last updated:{" "}
+                        {new Date(course.updatedAt).toLocaleDateString()}
+                      </CardDescription>
                     </div>
-                    <Badge variant="outline">{course.category}</Badge>
+                    <Badge variant="outline">{course.categoryName}</Badge>
                   </div>
                 </CardHeader>
+
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-4">
-                    {/* <div>
+                    <div>
                       <p className="text-sm font-medium mb-1">Students</p>
-                      <p className="text-2xl font-bold">{course.students}</p>
-                    </div> */}
+                      <p className="text-2xl font-bold">
+                        {course.enrollmentsCount}
+                      </p>
+                    </div>
+
+                    <div>
+                      <p className="text-sm font-medium mb-1">Rating</p>
+                      <p className="text-2xl font-bold">
+                        {course.averageRating.toFixed(1)} / 5
+                      </p>
+                    </div>
 
                     <div className="flex gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleViewCourse(course.id)}
-                        className="text-blue-600 hover:bg-blue-50 hover:text-blue-700 border-blue-200"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
@@ -425,29 +438,36 @@ export default function TrainerDashboard() {
 
           <div className="grid gap-4">
             {filteredStudents.map((student) => (
-              <Card key={student.id}>
+              <Card key={student.studentUsername + student.courseTitle}>
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div>
-                      <CardTitle className="text-lg">{student.name}</CardTitle>
-                      <CardDescription>{student.email}</CardDescription>
+                      <CardTitle className="text-lg">
+                        {student.studentFullname}
+                      </CardTitle>
+                      <CardDescription>
+                        {student.studentUsername}
+                      </CardDescription>
                     </div>
                   </div>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Course: {student.course}</span>
-                      <span>{student.progress}% Complete</span>
+                      <span>Course: {student.courseTitle}</span>
+                      <span>{student.completionPercentage}% Complete</span>
                     </div>
-                    <Progress value={student.progress} className="h-2" />
+                    <Progress
+                      value={student.completionPercentage}
+                      className="h-2"
+                    />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <p className="text-sm font-medium mb-1">Quiz Average</p>
                       <p className="text-lg font-bold">
-                        {student.quizAverage}%
+                        {student.averageScore}%
                       </p>
                     </div>
                   </div>
@@ -483,35 +503,29 @@ export default function TrainerDashboard() {
                     <Input
                       id="title"
                       placeholder="Enter course title"
-                      value={newCourse.title}
+                      value={courseData.title}
                       onChange={(e) =>
-                        setNewCourse({ ...newCourse, title: e.target.value })
+                        updateCourseField("title", e.target.value)
                       }
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="category">Category</Label>
                     <Select
-                      value={newCourse.category}
+                      value={courseData.categoryId.toString()}
                       onValueChange={(value) =>
-                        setNewCourse({ ...newCourse, category: value })
+                        updateCourseField("categoryId", parseInt(value, 10))
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select category" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="web-development">
-                          Web Development
-                        </SelectItem>
-                        <SelectItem value="data-science">
-                          Data Science
-                        </SelectItem>
-                        <SelectItem value="marketing">Marketing</SelectItem>
-                        <SelectItem value="design">Design</SelectItem>
-                        <SelectItem value="cloud-computing">
-                          Cloud Computing
-                        </SelectItem>
+                        <SelectItem value="1">Web Development</SelectItem>
+                        <SelectItem value="2">Data Science</SelectItem>
+                        <SelectItem value="3">Marketing</SelectItem>
+                        <SelectItem value="4">Design</SelectItem>
+                        <SelectItem value="5">Cloud Computing</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -521,20 +535,21 @@ export default function TrainerDashboard() {
                   <div className="space-y-2">
                     <Label htmlFor="level">Level</Label>
                     <Select
-                      value={newCourse.level}
+                      value={courseData.level}
                       onValueChange={(value) =>
-                        setNewCourse({ ...newCourse, level: value })
+                        updateCourseField("level", value as CourseLevel)
                       }
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select level" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="beginner">Beginner</SelectItem>
-                        <SelectItem value="intermediate">
+                        <SelectItem value="BEGINNER">Beginner</SelectItem>
+                        <SelectItem value="INTERMEDIATE">
                           Intermediate
                         </SelectItem>
-                        <SelectItem value="advanced">Advanced</SelectItem>
+                        <SelectItem value="ADVANCED">Advanced</SelectItem>
+                        <SelectItem value="EXPERT">Expert</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -543,9 +558,9 @@ export default function TrainerDashboard() {
                     <Input
                       id="duration"
                       placeholder="e.g., 8 weeks"
-                      value={newCourse.duration}
+                      value={courseData.duration}
                       onChange={(e) =>
-                        setNewCourse({ ...newCourse, duration: e.target.value })
+                        updateCourseField("duration", e.target.value)
                       }
                     />
                   </div>
@@ -556,12 +571,9 @@ export default function TrainerDashboard() {
                   <Textarea
                     id="description"
                     placeholder="Enter course description"
-                    value={newCourse.description}
+                    value={courseData.description || ""}
                     onChange={(e) =>
-                      setNewCourse({
-                        ...newCourse,
-                        description: e.target.value,
-                      })
+                      updateCourseField("description", e.target.value)
                     }
                     rows={3}
                   />
@@ -570,18 +582,18 @@ export default function TrainerDashboard() {
                 {/* Course Cover Image */}
                 <div className="space-y-2">
                   <Label htmlFor="cover-image">Course Cover Image</Label>
-                  {uploadedFiles["cover-image"] ? (
+                  {courseData.coverImage ? (
                     <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <CheckCircle className="h-8 w-8 text-green-600" />
                           <div>
                             <p className="font-medium text-green-800">
-                              {uploadedFiles["cover-image"].name}
+                              {courseData.coverImage.name}
                             </p>
                             <p className="text-sm text-green-800">
                               {(
-                                uploadedFiles["cover-image"].size /
+                                courseData.coverImage.size /
                                 1024 /
                                 1024
                               ).toFixed(2)}{" "}
@@ -592,7 +604,7 @@ export default function TrainerDashboard() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => removeUploadedFile("cover-image")}
+                          onClick={() => setCoverImage(null!)}
                           className="border-red-200 text-red-600 hover:bg-red-50 hover:text-red-600"
                         >
                           <X className="h-4 w-4" />
@@ -615,7 +627,7 @@ export default function TrainerDashboard() {
                             const file = (e.target as HTMLInputElement)
                               .files?.[0];
                             if (file) {
-                              handleFileUpload(file, "image", "cover-image");
+                              setCoverImage(file);
                             }
                           };
                           input.click();
@@ -634,8 +646,8 @@ export default function TrainerDashboard() {
                 <h3 className="text-lg font-semibold">Course Curriculum</h3>
 
                 {/* Existing Modules */}
-                {modules.map((module, index) => (
-                  <Card key={module.id} className="border-l-4 border-l-primary">
+                {courseData.modules.map((module, index) => (
+                  <Card key={index} className="border-l-4 border-l-primary">
                     <CardHeader>
                       <CardTitle className="text-base">
                         Module {index + 1}: {module.title}
@@ -648,7 +660,7 @@ export default function TrainerDashboard() {
                       <div className="space-y-2">
                         {module.lessons.map((lesson, lessonIndex) => (
                           <div
-                            key={lesson.id}
+                            key={lessonIndex}
                             className="flex items-center justify-between p-3 bg-muted rounded"
                           >
                             <div className="flex items-center gap-3">
@@ -658,15 +670,18 @@ export default function TrainerDashboard() {
                                   {lessonIndex + 1}. {lesson.title}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
-                                  Video • {lesson.duration}
+                                  Video • {lesson.duration || "No duration"}
                                 </p>
                               </div>
                             </div>
-                            {lesson.videoUrl && (
+                            {/* Show preview button if we have a video file for this lesson */}
+                            {lesson.video && (
                               <Button
                                 size="sm"
                                 variant="outline"
-                                onClick={() => playVideo(lesson.videoUrl!)}
+                                onClick={() =>
+                                  playVideo(URL.createObjectURL(lesson.video!))
+                                }
                               >
                                 <Play className="h-3 w-3 mr-1" />
                                 Preview
@@ -675,6 +690,15 @@ export default function TrainerDashboard() {
                           </div>
                         ))}
                       </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeModule(index)}
+                        className="mt-2 text-red-600 hover:bg-red-50"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Remove Module
+                      </Button>
                     </CardContent>
                   </Card>
                 ))}
@@ -703,24 +727,28 @@ export default function TrainerDashboard() {
                     {/* Lessons in Current Module */}
                     <div className="space-y-2">
                       <Label>Lessons</Label>
-                      {currentModule.lessons.map((lesson, index) => (
+                      {currentModule.lessons.map((lesson, lessonIndex) => (
                         <div
-                          key={lesson.id}
+                          key={lessonIndex}
                           className="grid gap-2 md:grid-cols-4 p-3 border rounded"
                         >
                           <Input
                             placeholder="Lesson title"
                             value={lesson.title}
                             onChange={(e) =>
-                              updateLesson(lesson.id, "title", e.target.value)
+                              updateLessonInCurrentModule(
+                                lessonIndex,
+                                "title",
+                                e.target.value
+                              )
                             }
                           />
                           <Input
                             placeholder="Duration (e.g., 15 min)"
-                            value={lesson.duration}
+                            value={lesson.duration || ""}
                             onChange={(e) =>
-                              updateLesson(
-                                lesson.id,
+                              updateLessonInCurrentModule(
+                                lessonIndex,
                                 "duration",
                                 e.target.value
                               )
@@ -737,32 +765,32 @@ export default function TrainerDashboard() {
                                 const file = (e.target as HTMLInputElement)
                                   .files?.[0];
                                 if (file) {
-                                  handleFileUpload(
-                                    file,
+                                  updateLessonInCurrentModule(
+                                    lessonIndex,
                                     "video",
-                                    `lesson-${lesson.id}`
+                                    file
                                   );
                                 }
                               };
                               input.click();
                             }}
                             className={
-                              uploadedFiles[`lesson-${lesson.id}`]
+                              lesson.video
                                 ? "bg-green-100 border-green-200 text-green-800 hover:bg-green-200 hover:text-green-800"
                                 : ""
                             }
                           >
                             <Upload className="h-4 w-4 mr-1" />
-                            {uploadedFiles[`lesson-${lesson.id}`]
-                              ? uploadedFiles[
-                                  `lesson-${lesson.id}`
-                                ].name.substring(0, 15) + "..."
+                            {lesson.video
+                              ? lesson.video.name.substring(0, 15) + "..."
                               : "Upload Video"}
                           </Button>
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => removeLesson(lesson.id)}
+                            onClick={() =>
+                              removeLessonFromCurrentModule(lessonIndex)
+                            }
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -798,9 +826,9 @@ export default function TrainerDashboard() {
                 <h3 className="text-lg font-semibold">Course Quiz</h3>
 
                 {/* Existing Quiz Questions */}
-                {quizQuestions.map((question, index) => (
+                {courseData.quiz?.questions.map((question, index) => (
                   <Card
-                    key={question.id}
+                    key={question.id || `question-${index}`}
                     className="border-l-4 border-l-orange-500"
                   >
                     <CardHeader>
@@ -811,7 +839,7 @@ export default function TrainerDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => removeQuizQuestion(question.id)}
+                          onClick={() => removeQuizQuestion(index)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -821,19 +849,20 @@ export default function TrainerDashboard() {
                       <div className="space-y-3">
                         <p className="font-medium">{question.question}</p>
                         <div className="grid gap-2">
-                          {question.options.map((option, optIndex) => (
+                          {question.answers.map((answer, optIndex) => (
                             <div
                               key={optIndex}
                               className={`p-2 rounded border ${
-                                optIndex === question.correctAnswer
+                                answer.correct
                                   ? "bg-green-50 border-green-200"
                                   : "bg-gray-50"
                               }`}
                             >
                               <span className="text-sm">
-                                {String.fromCharCode(65 + optIndex)}. {option}
+                                {String.fromCharCode(65 + optIndex)}.{" "}
+                                {answer.answer}
                               </span>
-                              {optIndex === question.correctAnswer && (
+                              {answer.correct && (
                                 <Badge
                                   variant="outline"
                                   className="ml-2 text-xs"
@@ -875,7 +904,7 @@ export default function TrainerDashboard() {
 
                     <div className="space-y-2">
                       <Label>Answer Options</Label>
-                      {currentQuestion.options.map((option, index) => (
+                      {currentQuestion.answers.map((answer, index) => (
                         <div key={index} className="flex gap-2 items-center">
                           <span className="text-sm font-medium w-6">
                             {String.fromCharCode(65 + index)}.
@@ -884,9 +913,9 @@ export default function TrainerDashboard() {
                             placeholder={`Option ${String.fromCharCode(
                               65 + index
                             )}`}
-                            value={option}
+                            value={answer.answer}
                             onChange={(e) =>
-                              updateQuestionOption(index, e.target.value)
+                              updateQuestionAnswer(index, e.target.value)
                             }
                           />
                         </div>
@@ -896,15 +925,14 @@ export default function TrainerDashboard() {
                     <div className="space-y-2">
                       <Label>Correct Answer</Label>
                       <RadioGroup
-                        value={currentQuestion.correctAnswer.toString()}
+                        value={currentQuestion.answers
+                          .findIndex((a) => a.correct)
+                          .toString()}
                         onValueChange={(value) =>
-                          setCurrentQuestion({
-                            ...currentQuestion,
-                            correctAnswer: Number.parseInt(value),
-                          })
+                          setCorrectAnswer(parseInt(value, 10))
                         }
                       >
-                        {currentQuestion.options.map((option, index) => (
+                        {currentQuestion.answers.map((answer, index) => (
                           <div
                             key={index}
                             className="flex items-center space-x-2"
@@ -918,7 +946,7 @@ export default function TrainerDashboard() {
                               className="text-sm"
                             >
                               {String.fromCharCode(65 + index)}.{" "}
-                              {option ||
+                              {answer.answer ||
                                 `Option ${String.fromCharCode(65 + index)}`}
                             </Label>
                           </div>
@@ -930,7 +958,9 @@ export default function TrainerDashboard() {
                       onClick={addQuizQuestion}
                       disabled={
                         !currentQuestion.question ||
-                        !currentQuestion.options.every((opt) => opt.trim())
+                        !currentQuestion.answers.every((answer) =>
+                          answer.answer.trim()
+                        )
                       }
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -945,9 +975,9 @@ export default function TrainerDashboard() {
                 <Button
                   onClick={createCourse}
                   disabled={
-                    !newCourse.title ||
-                    !newCourse.category ||
-                    modules.length === 0 ||
+                    !courseData.title ||
+                    !courseData.categoryId ||
+                    courseData.modules.length === 0 ||
                     loading
                   }
                 >

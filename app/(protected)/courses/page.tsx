@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -18,88 +19,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, Star, Clock, Users, CheckCircle } from "lucide-react";
+import { Search, Star, Clock, Users, Loader2, BookOpen } from "lucide-react";
 import Link from "next/link";
-
-const courses = [
-  {
-    id: 1,
-    title: "React Development Fundamentals",
-    description:
-      "Learn the basics of React including components, state, and props",
-    category: "Web Development",
-    level: "Beginner",
-    duration: "8 weeks",
-    students: 1250,
-    rating: 4.8,
-    instructor: "Sarah Johnson",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: 2,
-    title: "Advanced JavaScript Concepts",
-    description:
-      "Master closures, prototypes, async programming, and ES6+ features",
-    category: "Web Development",
-    level: "Advanced",
-    duration: "6 weeks",
-    students: 890,
-    rating: 4.9,
-    instructor: "John Smith",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: 3,
-    title: "Digital Marketing Strategy",
-    description: "Comprehensive guide to modern digital marketing techniques",
-    category: "Marketing",
-    level: "Intermediate",
-    duration: "10 weeks",
-    students: 2100,
-    rating: 4.7,
-    instructor: "Mike Chen",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: 4,
-    title: "Data Science with Python",
-    description:
-      "Learn data analysis, visualization, and machine learning with Python",
-    category: "Data Science",
-    level: "Intermediate",
-    duration: "12 weeks",
-    students: 1560,
-    rating: 4.8,
-    instructor: "Dr. Emily Rodriguez",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: 5,
-    title: "UI/UX Design Principles",
-    description:
-      "Master the fundamentals of user interface and user experience design",
-    category: "Design",
-    level: "Beginner",
-    duration: "8 weeks",
-    students: 980,
-    rating: 4.6,
-    instructor: "Lisa Wang",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-  {
-    id: 6,
-    title: "Cloud Computing with AWS",
-    description:
-      "Learn Amazon Web Services and cloud infrastructure management",
-    category: "Cloud Computing",
-    level: "Intermediate",
-    duration: "10 weeks",
-    students: 750,
-    rating: 4.7,
-    instructor: "David Kumar",
-    image: "/placeholder.svg?height=200&width=300",
-  },
-];
+import { CourseResponse } from "@/lib/course-types";
+import { courseApi } from "@/lib/api";
 
 const categories = [
   "All",
@@ -110,25 +33,102 @@ const categories = [
   "Cloud Computing",
 ];
 const levels = ["All", "Beginner", "Intermediate", "Advanced"];
-// Mock enrolled courses - only show indicator for enrolled courses
-const enrolledCourses = [1, 3, 4];
 
 export default function CourseCatalog() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedLevel, setSelectedLevel] = useState("All");
+  const [courses, setCourses] = useState<CourseResponse[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Fetch courses from API
+    const fetchCourses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await courseApi.getCourses();
+
+        if (!response.success) {
+          throw new Error(response.error?.message || "Failed to fetch courses");
+        }
+
+        setCourses(response.data || []);
+      } catch (error) {
+        console.error("Error fetching courses:", error);
+        setError("Failed to load courses. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   const filteredCourses = courses.filter((course) => {
     const matchesSearch =
       course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      course.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (course?.description &&
+        course.description.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesCategory =
-      selectedCategory === "All" || course.category === selectedCategory;
+      selectedCategory === "All" ||
+      course.categoryName.toLowerCase() === selectedCategory.toLowerCase();
     const matchesLevel =
-      selectedLevel === "All" || course.level === selectedLevel;
+      selectedLevel === "All" ||
+      course.level.toLowerCase() === selectedLevel.toLowerCase();
 
     return matchesSearch && matchesCategory && matchesLevel;
   });
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Course Catalog</h1>
+          <p className="text-muted-foreground">
+            Discover our comprehensive training programs
+          </p>
+        </div>
+        <Card>
+          <CardHeader className="text-center">
+            <Loader2 className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
+            <CardTitle className="text-2xl">Loading Courses...</CardTitle>
+            <CardDescription>
+              Please wait while we fetch the available courses
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Course Catalog</h1>
+          <p className="text-muted-foreground">
+            Discover our comprehensive training programs
+          </p>
+        </div>
+        <Card>
+          <CardHeader className="text-center">
+            <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+            <CardTitle className="text-2xl">Error Loading Courses</CardTitle>
+            <CardDescription>{error}</CardDescription>
+          </CardHeader>
+          <CardContent className="text-center">
+            <Button onClick={() => window.location.reload()} className="mt-4">
+              Try Again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -179,24 +179,32 @@ export default function CourseCatalog() {
       {/* Course Grid */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredCourses.map((course) => {
-          const isEnrolled = enrolledCourses.includes(course.id);
           return (
             <Card
               key={course.id}
               className="hover:shadow-lg transition-shadow relative"
             >
-              {/* Enrollment Indicator */}
-              {/* {isEnrolled && (
-                <div className="absolute top-4 right-4 z-10 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1">
-                  <CheckCircle className="h-3 w-3" />
-                  Enrolled
+              {course.coverImage ? (
+                <div className="w-full h-48 overflow-hidden rounded-t-lg relative">
+                  <Image
+                    src={`http://localhost:8080/files/${course.coverImage}`}
+                    alt={`${course.title} cover`}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 33vw"
+                    className="object-cover"
+                  />
                 </div>
-              )} */}
-              <div className="aspect-video bg-muted rounded-t-lg"></div>
+              ) : (
+                <div className="w-full h-48 bg-muted rounded-t-lg flex items-center justify-center text-muted-foreground">
+                  No image available
+                </div>
+              )}
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <Badge variant="secondary">{course.category}</Badge>
-                  <Badge variant="outline">{course.level}</Badge>
+                  <Badge variant="secondary">{course.categoryName}</Badge>
+                  <Badge variant="outline">
+                    {course.level.toLocaleLowerCase()}
+                  </Badge>
                 </div>
                 <CardTitle className="text-lg">{course.title}</CardTitle>
                 <CardDescription>{course.description}</CardDescription>
@@ -209,27 +217,23 @@ export default function CourseCatalog() {
                   </div>
                   <div className="flex items-center gap-1">
                     <Users className="h-4 w-4" />
-                    999
+                    {course.enrollmentsCount}
                   </div>
                 </div>
 
                 <div className="flex items-center gap-1">
                   <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  <span className="text-sm font-medium">{course.rating}</span>
+                  <span className="text-sm font-medium">
+                    {course.averageRating}
+                  </span>
                 </div>
 
                 <p className="text-sm text-muted-foreground">
-                  Instructor: {course.instructor}
+                  Formateur: {course.trainer.fullName}
                 </p>
 
-                <Button
-                  variant={isEnrolled ? "secondary" : "default"}
-                  className="w-full"
-                  asChild
-                >
-                  <Link href={`/courses/${course.id}`}>
-                    {isEnrolled ? "Continue Course" : "View Course"}
-                  </Link>
+                <Button className="w-full" asChild>
+                  <Link href={`/courses/${course.id}`}>Consulter</Link>
                 </Button>
               </CardContent>
             </Card>
@@ -237,11 +241,28 @@ export default function CourseCatalog() {
         })}
       </div>
 
-      {filteredCourses.length === 0 && (
+      {filteredCourses.length === 0 && !loading && (
         <div className="text-center py-12">
+          <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
+          <h3 className="text-xl font-semibold mb-2">No Courses Found</h3>
           <p className="text-muted-foreground">
-            No courses found matching your criteria.
+            {courses.length === 0
+              ? "No courses are currently available."
+              : "No courses found matching your search criteria."}
           </p>
+          {courses.length > 0 && (
+            <Button
+              onClick={() => {
+                setSearchTerm("");
+                setSelectedCategory("All");
+                setSelectedLevel("All");
+              }}
+              variant="outline"
+              className="mt-4"
+            >
+              Clear Filters
+            </Button>
+          )}
         </div>
       )}
     </div>

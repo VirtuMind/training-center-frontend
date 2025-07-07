@@ -86,17 +86,20 @@ export default function CourseCatalog() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Course Catalog</h1>
+          <h1 className="text-3xl font-bold">Catalogue de Formations</h1>
           <p className="text-muted-foreground">
-            Discover our comprehensive training programs
+            Découvrez nos programmes de formation complets
           </p>
         </div>
         <Card>
           <CardHeader className="text-center">
             <Loader2 className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
-            <CardTitle className="text-2xl">Loading Courses...</CardTitle>
+            <CardTitle className="text-2xl">
+              Chargement des Formations...
+            </CardTitle>
             <CardDescription>
-              Please wait while we fetch the available courses
+              Veuillez patienter pendant que nous récupérons les formations
+              disponibles
             </CardDescription>
           </CardHeader>
         </Card>
@@ -109,20 +112,20 @@ export default function CourseCatalog() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Course Catalog</h1>
+          <h1 className="text-3xl font-bold">Catalogue de Formations</h1>
           <p className="text-muted-foreground">
-            Discover our comprehensive training programs
+            Découvrez nos programmes de formation complets
           </p>
         </div>
         <Card>
           <CardHeader className="text-center">
             <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="text-2xl">Error Loading Courses</CardTitle>
+            <CardTitle className="text-2xl">Erreur de Chargement</CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <Button onClick={() => window.location.reload()} className="mt-4">
-              Try Again
+              Réessayer
             </Button>
           </CardContent>
         </Card>
@@ -133,9 +136,9 @@ export default function CourseCatalog() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Course Catalog</h1>
+        <h1 className="text-3xl font-bold">Catalogue de Formations</h1>
         <p className="text-muted-foreground">
-          Discover our comprehensive training programs
+          Découvrez nos programmes de formation complets
         </p>
       </div>
 
@@ -144,7 +147,7 @@ export default function CourseCatalog() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search courses..."
+            placeholder="Rechercher des formations..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-10"
@@ -152,7 +155,7 @@ export default function CourseCatalog() {
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-full md:w-48">
-            <SelectValue placeholder="Category" />
+            <SelectValue placeholder="Catégorie" />
           </SelectTrigger>
           <SelectContent>
             {categories.map((category) => (
@@ -164,7 +167,7 @@ export default function CourseCatalog() {
         </Select>
         <Select value={selectedLevel} onValueChange={setSelectedLevel}>
           <SelectTrigger className="w-full md:w-48">
-            <SelectValue placeholder="Level" />
+            <SelectValue placeholder="Niveau" />
           </SelectTrigger>
           <SelectContent>
             {levels.map((level) => (
@@ -244,11 +247,13 @@ export default function CourseCatalog() {
       {filteredCourses.length === 0 && !loading && (
         <div className="text-center py-12">
           <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-xl font-semibold mb-2">No Courses Found</h3>
+          <h3 className="text-xl font-semibold mb-2">
+            Aucune Formation Trouvée
+          </h3>
           <p className="text-muted-foreground">
             {courses.length === 0
-              ? "No courses are currently available."
-              : "No courses found matching your search criteria."}
+              ? "Aucune formation n'est actuellement disponible."
+              : "Aucune formation correspondant à vos critères de recherche."}
           </p>
           {courses.length > 0 && (
             <Button
@@ -260,7 +265,7 @@ export default function CourseCatalog() {
               variant="outline"
               className="mt-4"
             >
-              Clear Filters
+              Effacer les Filtres
             </Button>
           )}
         </div>

@@ -29,11 +29,16 @@ export default function ProgressPage() {
         if (response.success && response.data) {
           setEnrollments(response.data);
         } else {
-          setError(response.error?.message || "Failed to load progress data");
+          setError(
+            response.error?.message ||
+              "Échec du chargement des données de progression"
+          );
         }
       } catch (err) {
         console.error("Failed to fetch progress data:", err);
-        setError("Failed to load progress data. Please try again later.");
+        setError(
+          "Échec du chargement des données de progression. Veuillez réessayer plus tard."
+        );
       } finally {
         setLoading(false);
       }
@@ -47,17 +52,23 @@ export default function ProgressPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Learning Progress</h1>
+          <h1 className="text-3xl font-bold">
+            Progression d&apos;apprentissage
+          </h1>
           <p className="text-muted-foreground">
-            Track your learning journey and course completion
+            Suivez votre parcours d&apos;apprentissage et l&apos;achèvement des
+            formations
           </p>
         </div>
         <Card>
           <CardHeader className="text-center">
             <Loader2 className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
-            <CardTitle className="text-2xl">Loading Progress...</CardTitle>
+            <CardTitle className="text-2xl">
+              Chargement de la progression...
+            </CardTitle>
             <CardDescription>
-              Please wait while we fetch your learning progress
+              Veuillez patienter pendant que nous récupérons votre progression
+              d&apos;apprentissage
             </CardDescription>
           </CardHeader>
         </Card>
@@ -70,15 +81,20 @@ export default function ProgressPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Learning Progress</h1>
+          <h1 className="text-3xl font-bold">
+            Progression d&apos;apprentissage
+          </h1>
           <p className="text-muted-foreground">
-            Track your learning journey and course completion
+            Suivez votre parcours d&apos;apprentissage et l&apos;achèvement des
+            formations
           </p>
         </div>
         <Card>
           <CardHeader className="text-center">
             <AlertCircle className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="text-2xl">Error Loading Progress</CardTitle>
+            <CardTitle className="text-2xl">
+              Erreur de Chargement de la Progression
+            </CardTitle>
             <CardDescription>{error}</CardDescription>
           </CardHeader>
         </Card>
@@ -91,18 +107,23 @@ export default function ProgressPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Learning Progress</h1>
+          <h1 className="text-3xl font-bold">
+            Progression d&apos;apprentissage
+          </h1>
           <p className="text-muted-foreground">
-            Track your learning journey and course completion
+            Suivez votre parcours d&apos;apprentissage et l&apos;achèvement des
+            formations
           </p>
         </div>
         <Card>
           <CardHeader className="text-center">
             <BookOpen className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="text-2xl">No Courses Enrolled</CardTitle>
+            <CardTitle className="text-2xl">
+              Aucune Formation Inscrite
+            </CardTitle>
             <CardDescription>
-              You haven&apos;t enrolled in any courses yet. Start learning
-              today!
+              Vous n&apos;êtes inscrit à aucune formation pour le moment.
+              Commencez à apprendre dès aujourd&apos;hui !
             </CardDescription>
           </CardHeader>
         </Card>
@@ -113,15 +134,16 @@ export default function ProgressPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Learning Progress</h1>
+        <h1 className="text-3xl font-bold">Progression d&apos;apprentissage</h1>
         <p className="text-muted-foreground">
-          Track your learning journey and course completion
+          Suivez votre parcours d&apos;apprentissage et l&apos;achèvement des
+          formations
         </p>
       </div>
 
       {/* Course Progress Details */}
       <div className="space-y-4">
-        <h2 className="text-2xl font-semibold">Course Progress</h2>
+        <h2 className="text-2xl font-semibold">Progression des Formations</h2>
         {enrollments.map((enrollment) => (
           <Card key={enrollment.id}>
             <CardHeader>
@@ -131,7 +153,7 @@ export default function ProgressPage() {
                     {enrollment.courseTitle}
                   </CardTitle>
                   <CardDescription>
-                    Progress tracking for this course
+                    Suivi de progression pour cette formation
                   </CardDescription>
                 </div>
                 <Badge variant="secondary">{enrollment.courseCategory}</Badge>
@@ -140,7 +162,7 @@ export default function ProgressPage() {
             <CardContent className="space-y-4">
               <div>
                 <div className="flex justify-between text-sm mb-2">
-                  <span>Overall Progress</span>
+                  <span>Progression Globale</span>
                   <span>{enrollment.progressPercentage}%</span>
                 </div>
                 <Progress
@@ -148,21 +170,23 @@ export default function ProgressPage() {
                   className="h-2 [&>div]:bg-green-600"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  {enrollment.completedLessons} of {enrollment.totalLessons}{" "}
-                  lessons completed
+                  {enrollment.completedLessons} sur {enrollment.totalLessons}{" "}
+                  leçons terminées
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <p className="text-sm font-medium mb-1">Trainer</p>
+                  <p className="text-sm font-medium mb-1">Formateur</p>
                   <p className="text-sm text-muted-foreground">
                     {enrollment.trainerFullname}
                   </p>
                 </div>
 
                 <div>
-                  <p className="text-sm font-medium mb-1">Enrolled Date</p>
+                  <p className="text-sm font-medium mb-1">
+                    Date d&apos;inscription
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {new Date(enrollment.enrolledAt).toLocaleDateString()}
                   </p>

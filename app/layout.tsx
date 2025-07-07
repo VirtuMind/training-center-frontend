@@ -6,8 +6,8 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "EduCraft - Training Center Management",
-  description: "Modern training center management platform",
+  title: "Centre de Formations - L'excellence en formation",
+  description: "Plate-forme moderne de gestion des centres de formation",
 };
 
 export default function RootLayout({

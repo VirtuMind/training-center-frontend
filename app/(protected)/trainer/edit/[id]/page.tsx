@@ -123,7 +123,7 @@ export default function EditCourse() {
       }
     } catch (error) {
       console.error("Failed to load course data:", error);
-      alert("Failed to load course data");
+      alert("Échec du chargement des données de la formation");
     }
   };
 
@@ -265,11 +265,11 @@ export default function EditCourse() {
         !courseData.duration ||
         !courseData.categoryId
       ) {
-        throw new Error("Please fill all required fields");
+        throw new Error("Veuillez remplir tous les champs obligatoires");
       }
 
       if (courseData.modules.length === 0) {
-        throw new Error("Please add at least one module");
+        throw new Error("Veuillez ajouter au moins un module");
       }
 
       // Check if each module has at least one lesson
@@ -277,19 +277,20 @@ export default function EditCourse() {
         (m) => m.lessons.length === 0
       );
       if (emptyModules.length > 0) {
-        throw new Error("Each module must have at least one lesson");
+        throw new Error("Chaque module doit avoir au moins une leçon");
       }
 
       const response = await courseApi.updateCourse(courseId, courseData);
 
       if (response.success) {
-        alert("Course updated successfully!");
+        alert("Formation mise à jour avec succès !");
         router.push("/trainer");
       } else {
         const errorMessage =
           typeof response.error === "string"
             ? response.error
-            : response.error?.message || "Course update failed";
+            : response.error?.message ||
+              "La mise à jour de la formation a échoué";
         throw new Error(errorMessage);
       }
     } catch (error) {
@@ -297,7 +298,7 @@ export default function EditCourse() {
       const errorMessage =
         error instanceof Error
           ? error.message
-          : "Course update failed. Please try again.";
+          : "La mise à jour de la formation a échoué. Veuillez réessayer.";
       alert(errorMessage);
     } finally {
       setLoading(false);
@@ -311,24 +312,24 @@ export default function EditCourse() {
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Edit Course</h1>
+          <h1 className="text-3xl font-bold">Modifier la Formation</h1>
           <p className="text-muted-foreground">
-            Update your course content and settings
+            Mettre à jour le contenu et les paramètres de votre formation
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Course Information</CardTitle>
+          <CardTitle>Informations sur la Formation</CardTitle>
           <CardDescription>
-            Update the basic details of your course
+            Mettez à jour les détails de base de votre formation
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="title">Course Title</Label>
+              <Label htmlFor="title">Titre de la Formation</Label>
               <Input
                 id="title"
                 value={courseData.title}
@@ -336,7 +337,7 @@ export default function EditCourse() {
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">Catégorie</Label>
               <Select
                 value={courseData.categoryId.toString()}
                 onValueChange={(value) =>
@@ -359,7 +360,7 @@ export default function EditCourse() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="level">Level</Label>
+              <Label htmlFor="level">Niveau</Label>
               <Select
                 value={courseData.level}
                 onValueChange={(value) =>
@@ -377,7 +378,7 @@ export default function EditCourse() {
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
+              <Label htmlFor="duration">Durée</Label>
               <Input
                 id="duration"
                 value={courseData.duration}
@@ -397,7 +398,7 @@ export default function EditCourse() {
           </div>
 
           <div className="space-y-2">
-            <Label>Course Cover Image</Label>
+            <Label>Image de Couverture</Label>
             {courseData.coverImageUrl && (
               <div className="mb-3">
                 <a
@@ -406,7 +407,7 @@ export default function EditCourse() {
                   rel="noopener noreferrer"
                   className="text-sm text-green-600 hover:text-green-800 underline"
                 >
-                  View current image
+                  Voir l&apos;image actuelle
                 </a>
               </div>
             )}
@@ -439,7 +440,7 @@ export default function EditCourse() {
               <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
                 <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  Upload a cover image for your course
+                  Téléchargez une image de couverture pour votre formation
                 </p>
                 <input
                   type="file"
@@ -460,7 +461,7 @@ export default function EditCourse() {
                   }
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Choose Image
+                  Choisir une Image
                 </Button>
               </div>
             )}
@@ -471,8 +472,10 @@ export default function EditCourse() {
       {/* Modules Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Course Modules</CardTitle>
-          <CardDescription>Manage your course curriculum</CardDescription>
+          <CardTitle>Modules de Formation</CardTitle>
+          <CardDescription>
+            Gérez le programme de votre formation
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {courseData.modules.map((module, index) => (
@@ -498,7 +501,7 @@ export default function EditCourse() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground">
-                  {module.lessons.length} lessons
+                  {module.lessons.length} leçons
                 </p>
               </CardContent>
             </Card>
@@ -506,14 +509,16 @@ export default function EditCourse() {
 
           <Card className="border-dashed">
             <CardHeader>
-              <CardTitle className="text-base">Add New Module</CardTitle>
+              <CardTitle className="text-base">
+                Ajouter un Nouveau Module
+              </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="module-title">Module Title</Label>
+                <Label htmlFor="module-title">Titre du Module</Label>
                 <Input
                   id="module-title"
-                  placeholder="Enter module title"
+                  placeholder="Entrez le titre du module"
                   value={currentModule.title}
                   onChange={(e) =>
                     setCurrentModule({
@@ -526,7 +531,7 @@ export default function EditCourse() {
 
               {/* Lessons in Current Module */}
               <div className="space-y-2">
-                <Label>Lessons</Label>
+                <Label>Leçons</Label>
                 {currentModule.lessons.map((lesson, lessonIndex) => (
                   <div
                     key={`lesson-${lessonIndex}-${lesson.id || "new"}-${
@@ -535,7 +540,7 @@ export default function EditCourse() {
                     className="grid gap-2 md:grid-cols-4 p-3 border rounded"
                   >
                     <Input
-                      placeholder="Lesson title"
+                      placeholder="Titre de la leçon"
                       value={lesson.title}
                       onChange={(e) =>
                         updateLessonInCurrentModule(
@@ -546,7 +551,7 @@ export default function EditCourse() {
                       }
                     />
                     <Input
-                      placeholder="Duration (e.g., 15 min)"
+                      placeholder="Durée (ex: 15 min)"
                       value={lesson.duration || ""}
                       onChange={(e) =>
                         updateLessonInCurrentModule(
@@ -587,10 +592,10 @@ export default function EditCourse() {
                         {lesson.video
                           ? lesson.video instanceof File
                             ? lesson.video.name.substring(0, 15) + "..."
-                            : "Video uploaded"
+                            : "Vidéo téléchargée"
                           : lesson.videoUrl
-                          ? "Update Video"
-                          : "Upload Video"}
+                          ? "Mettre à jour la vidéo"
+                          : "Télécharger une vidéo"}
                       </Button>
                       {lesson.videoUrl && !lesson.video && (
                         <p className="text-xs text-muted-foreground">
@@ -600,7 +605,7 @@ export default function EditCourse() {
                             rel="noopener noreferrer"
                             className="text-blue-600 hover:text-blue-800 underline"
                           >
-                            Current video
+                            Vidéo actuelle
                           </a>
                         </p>
                       )}
@@ -621,7 +626,7 @@ export default function EditCourse() {
                   className="w-full bg-transparent"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Add Lesson
+                  Ajouter une Leçon
                 </Button>
               </div>
 
@@ -633,7 +638,7 @@ export default function EditCourse() {
                 className="w-full"
               >
                 <Save className="h-4 w-4 mr-2" />
-                Save Module
+                Enregistrer le Module
               </Button>
             </CardContent>
           </Card>
@@ -643,9 +648,9 @@ export default function EditCourse() {
       {/* Quiz Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Course Quiz</CardTitle>
+          <CardTitle>Évaluation de la Formation</CardTitle>
           <CardDescription>
-            Manage quiz questions for your course
+            Gérez les questions d&apos;évaluation pour votre formation
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -685,7 +690,7 @@ export default function EditCourse() {
                       {String.fromCharCode(65 + optIndex)}. {answer.answer}
                       {answer.correct && (
                         <span className="ml-2 text-green-600 text-xs">
-                          ✓ Correct
+                          Correcte
                         </span>
                       )}
                     </div>
@@ -697,13 +702,13 @@ export default function EditCourse() {
 
           <Card className="border-dashed">
             <CardHeader>
-              <CardTitle className="text-base">Add Quiz Question</CardTitle>
+              <CardTitle className="text-base">Ajouter une Question</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label>Question</Label>
                 <Textarea
-                  placeholder="Enter your question"
+                  placeholder="Entrez votre question"
                   value={currentQuestion.question}
                   onChange={(e) =>
                     setCurrentQuestion({
@@ -716,7 +721,7 @@ export default function EditCourse() {
               </div>
 
               <div className="space-y-2">
-                <Label>Answer Options</Label>
+                <Label>Options de Réponse</Label>
                 {currentQuestion.answers.map((answer, index) => (
                   <div key={index} className="flex gap-2 items-center">
                     <span className="text-sm font-medium w-6">
@@ -734,7 +739,7 @@ export default function EditCourse() {
               </div>
 
               <div className="space-y-2">
-                <Label>Correct Answer</Label>
+                <Label>Réponse Correcte</Label>
                 <RadioGroup
                   value={currentQuestion.answers
                     .findIndex((a) => a.correct)
@@ -769,7 +774,7 @@ export default function EditCourse() {
                 }
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Add Question
+                Ajouter la Question
               </Button>
             </CardContent>
           </Card>
@@ -780,10 +785,10 @@ export default function EditCourse() {
       <div className="flex gap-2">
         <Button onClick={updateCourse} disabled={loading}>
           <Save className="h-4 w-4 mr-2" />
-          {loading ? "Updating..." : "Update Course"}
+          {loading ? "Mise à jour en cours..." : "Mettre à jour la Formation"}
         </Button>
         <Button variant="outline" onClick={() => router.back()}>
-          Cancel
+          Annuler
         </Button>
       </div>
     </div>

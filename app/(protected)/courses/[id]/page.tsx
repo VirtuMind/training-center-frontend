@@ -78,11 +78,14 @@ export default function CourseDetail() {
           setCanReview(progressPercent >= 50);
         }
       } else {
-        setError(response.error?.message || "Failed to load course data");
+        setError(
+          response.error?.message ||
+            "Échec du chargement des données de la formation"
+        );
       }
     } catch (error) {
       console.error("Failed to load course data:", error);
-      setError("Failed to load course data");
+      setError("Échec du chargement des données de la formation");
     } finally {
       setLoading(false);
     }
@@ -97,7 +100,7 @@ export default function CourseDetail() {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <p>Loading course details...</p>
+          <p>Chargement des détails de la formation...</p>
         </div>
       </div>
     );
@@ -107,7 +110,7 @@ export default function CourseDetail() {
     return (
       <div className="space-y-6">
         <div className="text-center py-12">
-          <p className="text-red-500">{error || "Course not found"}</p>
+          <p className="text-red-500">{error || "Formation non trouvée"}</p>
         </div>
       </div>
     );
@@ -139,12 +142,12 @@ export default function CourseDetail() {
       const response = await enrollmentApi.enrollUser(courseId);
 
       if (response.success) {
-        alert("Enrollment successful!");
+        alert("Inscription réussie !");
         // refresh the page
         loadCourseData();
       } else {
         console.error("Enrollment failed:", response.error);
-        alert("Enrollment failed. Please try again.");
+        alert("Échec de l'inscription. Veuillez réessayer.");
       }
     } catch (error) {
       console.error("Enrollment error:", error);
@@ -214,17 +217,17 @@ export default function CourseDetail() {
       };
       const response = await enrollmentApi.submitReview(reviewData);
       if (response.success) {
-        alert("Review submitted successfully!");
+        alert("Avis soumis avec succès !");
         setShowReviewForm(false);
         setNewReview({ rating: 5, comment: "" });
         // Optionally, reload course data to show new review
         loadCourseData();
       } else {
-        alert("Failed to submit review: " + response.error?.message);
+        alert("Échec de la soumission de l'avis : " + response.error?.message);
       }
     } catch (error) {
       console.error("Failed to submit review:", error);
-      alert("Failed to submit review. Please try again.");
+      alert("Échec de la soumission de l'avis. Veuillez réessayer.");
     }
   };
 
@@ -255,7 +258,7 @@ export default function CourseDetail() {
               <div className="flex items-center gap-6 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
-                  {courseData.enrollmentsCount.toLocaleString()} students
+                  {courseData.enrollmentsCount.toLocaleString()} étudiants
                 </div>
                 <div className="flex items-center gap-1">
                   <Clock className="h-4 w-4" />
@@ -270,12 +273,12 @@ export default function CourseDetail() {
               {isEnrolled && (
                 <div>
                   <div className="flex justify-between text-sm mb-2">
-                    <span>Course Progress</span>
+                    <span>Progression de la Formation</span>
                     <span>{progressPercentage}%</span>
                   </div>
                   <Progress value={progressPercentage} className="h-2" />
                   <p className="text-xs text-muted-foreground mt-1">
-                    {completedLessons} of {totalLessons} lessons completed
+                    {completedLessons} sur {totalLessons} leçons terminées
                   </p>
                 </div>
               )}
@@ -285,7 +288,7 @@ export default function CourseDetail() {
           <div>
             <Card>
               <CardHeader>
-                <CardTitle>Course Details</CardTitle>
+                <CardTitle>Détails de la Formation</CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -297,7 +300,7 @@ export default function CourseDetail() {
                     <p className="font-medium">
                       {courseData.level.toLocaleLowerCase()}
                     </p>
-                    <p className="text-sm text-muted-foreground">Level</p>
+                    <p className="text-sm text-muted-foreground">Niveau</p>
                   </div>
                   <div className="flex gap-2">
                     {isEnrolled ? (
@@ -305,19 +308,19 @@ export default function CourseDetail() {
                         {courseData.quiz && (
                           <Button className="flex-1" asChild>
                             <Link href={`/quiz/${courseData.id}`}>
-                              Take Quiz
+                              Faire l&apos;évaluation
                             </Link>
                           </Button>
                         )}
                         {!courseData.quiz && (
                           <p className="text-sm text-muted-foreground text-center py-2 flex-1">
-                            No quiz available for this course
+                            Aucune évaluation disponible pour cette formation
                           </p>
                         )}
                       </>
                     ) : (
                       <Button className="flex-1" onClick={handleEnrollClick}>
-                        Enroll Now
+                        S&apos;inscrire maintenant
                       </Button>
                     )}
                   </div>
@@ -330,16 +333,16 @@ export default function CourseDetail() {
         {/* Course Content */}
         <Tabs defaultValue="curriculum" className="space-y-4">
           <TabsList>
-            <TabsTrigger value="curriculum">Curriculum</TabsTrigger>
-            <TabsTrigger value="reviews">Reviews</TabsTrigger>
+            <TabsTrigger value="curriculum">Programme</TabsTrigger>
+            <TabsTrigger value="reviews">Avis</TabsTrigger>
           </TabsList>
 
           <TabsContent value="curriculum" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Course Curriculum</CardTitle>
+                <CardTitle>Programme de la Formation</CardTitle>
                 <CardDescription>
-                  {totalLessons} lessons • {courseData.duration} total duration
+                  {totalLessons} leçons • {courseData.duration} durée totale
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -413,9 +416,9 @@ export default function CourseDetail() {
           <TabsContent value="reviews" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Student Reviews</CardTitle>
+                <CardTitle>Avis des Étudiants</CardTitle>
                 <CardDescription>
-                  See what other students are saying
+                  Découvrez ce que disent les autres étudiants
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -424,12 +427,12 @@ export default function CourseDetail() {
                     {canReview ? (
                       !showReviewForm ? (
                         <Button onClick={() => setShowReviewForm(true)}>
-                          Write a Review
+                          Écrire un avis
                         </Button>
                       ) : (
                         <div className="space-y-4">
                           <div>
-                            <Label>Rating</Label>
+                            <Label>Note</Label>
                             <div className="flex gap-1 mt-1">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <button
@@ -451,9 +454,9 @@ export default function CourseDetail() {
                             </div>
                           </div>
                           <div>
-                            <Label>Your Review</Label>
+                            <Label>Votre Avis</Label>
                             <Textarea
-                              placeholder="Share your experience with this course..."
+                              placeholder="Partagez votre expérience avec cette formation..."
                               value={newReview.comment}
                               onChange={(e) =>
                                 setNewReview({
@@ -469,13 +472,13 @@ export default function CourseDetail() {
                               onClick={submitReview}
                               disabled={!newReview.comment.trim()}
                             >
-                              Submit Review
+                              Soumettre l&apos;avis
                             </Button>
                             <Button
                               variant="outline"
                               onClick={() => setShowReviewForm(false)}
                             >
-                              Cancel
+                              Annuler
                             </Button>
                           </div>
                         </div>
@@ -483,10 +486,11 @@ export default function CourseDetail() {
                     ) : (
                       <div className="text-center py-4">
                         <p className="text-muted-foreground">
-                          Complete at least 50% of the course to leave a review
+                          Complétez au moins 50% de la formation pour laisser un
+                          avis
                         </p>
                         <p className="text-sm text-muted-foreground mt-1">
-                          Current progress: {progressPercentage}%
+                          Progression actuelle : {progressPercentage}%
                         </p>
                       </div>
                     )}
@@ -521,7 +525,8 @@ export default function CourseDetail() {
                   ))}
                   {courseData.reviews.length === 0 && (
                     <p className="text-muted-foreground text-center py-4">
-                      No reviews yet. Be the first to review this course!
+                      Aucun avis pour le moment. Soyez le premier à évaluer
+                      cette formation !
                     </p>
                   )}
                 </div>

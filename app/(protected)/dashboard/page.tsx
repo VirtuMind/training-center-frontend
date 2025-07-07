@@ -62,9 +62,9 @@ export default function Dashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold">Loading...</h1>
+          <h1 className="text-3xl font-bold">Chargement...</h1>
           <p className="text-muted-foreground">
-            Please wait while we load your dashboard
+            Veuillez patienter pendant le chargement de votre tableau de bord
           </p>
         </div>
       </div>
@@ -74,23 +74,25 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Welcome back, {user?.fullName}!</h1>
-        <p className="text-muted-foreground">Continue your learning journey</p>
+        <h1 className="text-3xl font-bold">Bienvenue, {user?.fullName}!</h1>
+        <p className="text-muted-foreground">
+          Poursuivez votre parcours d&apos;apprentissage
+        </p>
       </div>
 
       {/* Enrolled Courses */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-semibold">My Courses</h2>
+          <h2 className="text-2xl font-semibold">Mes Formations</h2>
           <Button asChild>
-            <Link href="/courses">Browse All Courses</Link>
+            <Link href="/courses">Parcourir toutes les formations</Link>
           </Button>
         </div>
 
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           {enrolledCourses.length === 0 && (
             <div className="col-span-3 m-20 text-center text-muted-foreground">
-              You are not enrolled in any courses yet.
+              Vous n&apos;êtes inscrit à aucune formation pour le moment.
             </div>
           )}
           {enrolledCourses.length > 0 &&
@@ -113,7 +115,7 @@ export default function Dashboard() {
                 <CardContent className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Progress</span>
+                      <span>Progression</span>
                       <span>{course.progressPercentage}%</span>
                     </div>
                     <Progress
@@ -124,17 +126,19 @@ export default function Dashboard() {
                       {Math.round(
                         (course.completedLessons / course.totalLessons) * 100
                       ) === course.progressPercentage
-                        ? `${course.completedLessons} of ${course.totalLessons} lessons completed`
-                        : `${course.completedLessons} of ${course.totalLessons} lessons completed`}
+                        ? `${course.completedLessons} sur ${course.totalLessons} leçons terminées`
+                        : `${course.completedLessons} sur ${course.totalLessons} leçons terminées`}
                     </p>
                   </div>
 
                   <div className="flex gap-2">
                     <Button className="flex-1" asChild>
-                      <Link href={`/courses/${course.id}`}>Continue</Link>
+                      <Link href={`/courses/${course.id}`}>Continuer</Link>
                     </Button>
                     <Button variant="outline" asChild>
-                      <Link href={`/quiz/${course.id}`}>Take Quiz</Link>
+                      <Link href={`/quiz/${course.id}`}>
+                        Faire l&apos;évaluation
+                      </Link>
                     </Button>
                   </div>
                 </CardContent>

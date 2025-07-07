@@ -45,12 +45,14 @@ export default function Quiz() {
             new Array(response.data.questions.length).fill(undefined)
           );
         } else {
-          setError(response.error?.message || "Failed to load quiz");
+          setError(
+            response.error?.message || "Échec du chargement de l'évaluation"
+          );
         }
       } catch (err) {
         console.error("Failed to fetch quiz data:", err);
         setError(
-          "Failed to load quiz. You may not be enrolled in this course or the quiz may not be available."
+          "Échec du chargement de l'évaluation. Vous n'êtes peut-être pas inscrit à cette formation ou l'évaluation n'est pas disponible."
         );
       } finally {
         setLoading(false);
@@ -118,9 +120,11 @@ export default function Quiz() {
         <Card>
           <CardHeader className="text-center">
             <Loader2 className="h-16 w-16 mx-auto text-muted-foreground mb-4 animate-spin" />
-            <CardTitle className="text-2xl">Loading Quiz...</CardTitle>
+            <CardTitle className="text-2xl">
+              Chargement de l&apos;Évaluation...
+            </CardTitle>
             <CardDescription>
-              Please wait while we fetch the quiz questions
+              Veuillez patienter pendant que nous récupérons les questions
             </CardDescription>
           </CardHeader>
         </Card>
@@ -135,16 +139,20 @@ export default function Quiz() {
         <Card>
           <CardHeader className="text-center">
             <Lock className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-            <CardTitle className="text-2xl">Quiz Access Restricted</CardTitle>
-            <CardDescription>{error || "Quiz not available"}</CardDescription>
+            <CardTitle className="text-2xl">
+              Accès à l&apos;Évaluation Restreint
+            </CardTitle>
+            <CardDescription>
+              {error || "Évaluation non disponible"}
+            </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground mb-6">
-              Please enroll in the course first to take the quiz and track your
-              progress.
+              Veuillez d&apos;abord vous inscrire au cours pour répondre au quiz
+              et suivre vos progrès.
             </p>
             <Button onClick={() => router.push(`/courses/${courseId}`)}>
-              View Course & Enroll
+              Voir la Formation & S&apos;inscrire
             </Button>
           </CardContent>
         </Card>
@@ -158,14 +166,14 @@ export default function Quiz() {
       <div className="max-w-4xl mx-auto space-y-6">
         <Card>
           <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Quiz Complete!</CardTitle>
-            <CardDescription>Here are your results</CardDescription>
+            <CardTitle className="text-2xl">Évaluation Terminée !</CardTitle>
+            <CardDescription>Voici vos résultats</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
               <div className="text-4xl font-bold mb-2">{score}%</div>
               <p className="text-muted-foreground">
-                You got{" "}
+                Vous avez obtenu{" "}
                 {
                   selectedAnswers.filter((answerIndex, questionIndex) => {
                     if (answerIndex === undefined) return false;
@@ -174,12 +182,12 @@ export default function Quiz() {
                     return answer && answer.correct;
                   }).length
                 }{" "}
-                out of {quizData.questions.length} questions correct
+                sur {quizData.questions.length} réponses correctes
               </p>
               {submittingScore && (
                 <p className="text-sm text-blue-600 mt-2">
                   <Loader2 className="h-4 w-4 inline mr-2 animate-spin" />
-                  Submitting your score...
+                  Enregistrement de votre score...
                 </p>
               )}
             </div>
@@ -219,14 +227,14 @@ export default function Quiz() {
                     <CardContent>
                       <div className="space-y-2">
                         <p className="text-sm">
-                          <span className="font-medium">Your answer:</span>{" "}
+                          <span className="font-medium">Votre réponse :</span>{" "}
                           {selectedAnswer
                             ? selectedAnswer.answer
-                            : "Not answered"}
+                            : "Non répondu"}
                         </p>
                         <p className="text-sm">
-                          <span className="font-medium">Correct answer:</span>{" "}
-                          {correctAnswer ? correctAnswer.answer : "Unknown"}
+                          <span className="font-medium">Bonne réponse :</span>{" "}
+                          {correctAnswer ? correctAnswer.answer : "Inconnue"}
                         </p>
                       </div>
                     </CardContent>
@@ -237,13 +245,13 @@ export default function Quiz() {
 
             <div className="flex gap-4 justify-center">
               <Button onClick={() => window.location.reload()}>
-                Retake Quiz
+                Refaire l&apos;Évaluation
               </Button>
               <Button
                 variant="outline"
                 onClick={() => router.push(`/courses/${courseId}`)}
               >
-                Back to Course
+                Retour à la Formation
               </Button>
             </div>
           </CardContent>
@@ -264,16 +272,16 @@ export default function Quiz() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{quizData.courseTitle}</h1>
-          <p className="text-muted-foreground">Course Quiz</p>
+          <p className="text-muted-foreground">Évaluation de la formation</p>
         </div>
       </div>
 
       <div className="space-y-2">
         <div className="flex justify-between text-sm">
           <span>
-            Question {currentQuestion + 1} of {quizData.questions.length}
+            Question {currentQuestion + 1} sur {quizData.questions.length}
           </span>
-          <span>{Math.round(progress)}% Complete</span>
+          <span>{Math.round(progress)}% Complété</span>
         </div>
         <Progress value={progress} />
       </div>
@@ -312,15 +320,15 @@ export default function Quiz() {
               onClick={handlePrevious}
               disabled={currentQuestion === 0}
             >
-              Previous
+              Précédent
             </Button>
             <Button
               onClick={handleNext}
               disabled={selectedAnswers[currentQuestion] === undefined}
             >
               {currentQuestion === quizData.questions.length - 1
-                ? "Finish Quiz"
-                : "Next"}
+                ? "Terminer l'Évaluation"
+                : "Suivant"}
             </Button>
           </div>
         </CardContent>

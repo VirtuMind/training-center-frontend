@@ -17,36 +17,37 @@ import {
   Settings,
   LogOut,
   GraduationCap,
+  Presentation,
 } from "lucide-react";
 
 // Define navigation items with role restrictions
 const navigationItems = [
   {
-    name: "Dashboard",
+    name: "Tableau de bord",
     href: "/dashboard",
     icon: Home,
     roles: ["STUDENT"],
   },
   {
-    name: "Courses",
+    name: "Formations",
     href: "/courses",
     icon: BookOpen,
     roles: ["STUDENT"],
   },
   {
-    name: "Progress",
+    name: "Progression",
     href: "/progress",
     icon: BarChart3,
     roles: ["STUDENT"],
   },
   {
-    name: "Trainer Panel",
+    name: "Panneau Formateur",
     href: "/trainer",
     icon: Users,
     roles: ["TRAINER"],
   },
   {
-    name: "Admin Panel",
+    name: "Panneau Admin",
     href: "/admin",
     icon: Settings,
     roles: ["ADMIN"],
@@ -84,7 +85,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       window.location.href = "/login";
     } catch (error) {
       console.error("Logout error:", error);
-      alert("Error during logout. Please try again.");
+      alert("Erreur lors de la déconnexion. Veuillez réessayer.");
     }
   };
 
@@ -94,8 +95,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
       <div className="hidden lg:fixed lg:inset-y-0 lg:z-50 lg:flex lg:w-72 lg:flex-col">
         <div className="flex grow flex-col gap-y-5 overflow-y-auto border-r border-border bg-card px-6 pb-4">
           <div className="flex h-16 shrink-0 items-center">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold">EduCraft</span>
+            <Presentation className="h-7 w-8 text-primary" />
+            <span className="ml-3 text-l font-bold">Centre de Formations</span>
           </div>
           <nav className="flex flex-1 flex-col">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">
@@ -138,7 +139,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 className="lg:hidden bg-transparent"
               >
                 <Menu className="h-6 w-6" />
-                <span className="sr-only">Open sidebar</span>
+                <span className="sr-only">Ouvrir le menu</span>
               </Button>
             </SheetTrigger>
 
@@ -154,7 +155,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   onClick={handleLogout}
                 >
                   <LogOut className="h-4 w-4" />
-                  <span className="sr-only">Log out</span>
+                  <span className="sr-only">Déconnexion</span>
                 </Button>
               </div>
             </div>
@@ -163,8 +164,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
 
         <SheetContent side="left" className="w-72">
           <div className="flex h-16 shrink-0 items-center">
-            <GraduationCap className="h-8 w-8 text-primary" />
-            <span className="ml-2 text-xl font-bold">EduCraft</span>
+            <Presentation className="h-7 w-8 text-primary" />
+            <span className="ml-3 text-l font-bold">Centre de Formations</span>
           </div>
           <nav className="flex flex-1 flex-col mt-8">
             <ul role="list" className="flex flex-1 flex-col gap-y-7">

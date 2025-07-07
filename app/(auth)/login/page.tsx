@@ -53,11 +53,15 @@ export default function LoginPage() {
           router.push("/dashboard");
         }
       } else {
-        setError(response.error?.message || "Login failed. Please try again.");
+        setError(
+          response.error?.message || "Échec de connexion. Veuillez réessayer."
+        );
       }
     } catch (err) {
       console.error("Login error:", err);
-      setError("An error occurred during login. Please try again.");
+      setError(
+        "Une erreur s&apos;est produite lors de la connexion. Veuillez réessayer."
+      );
     } finally {
       setIsLoading(false);
     }
@@ -66,9 +70,9 @@ export default function LoginPage() {
   return (
     <Card className="mx-auto w-full max-w-md">
       <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl font-bold">Login</CardTitle>
+        <CardTitle className="text-2xl font-bold">Connexion</CardTitle>
         <CardDescription>
-          Enter your credentials to access your account
+          Saisissez vos identifiants pour accéder à votre compte
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
@@ -84,7 +88,7 @@ export default function LoginPage() {
               id="email"
               name="email"
               type="email"
-              placeholder="name@example.com"
+              placeholder="nom@exemple.com"
               required
               value={formData.email}
               onChange={handleInputChange}
@@ -92,12 +96,13 @@ export default function LoginPage() {
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">Mot de passe</Label>
             </div>
             <Input
               id="password"
               name="password"
               type="password"
+              placeholder="********"
               required
               value={formData.password}
               onChange={handleInputChange}
@@ -106,7 +111,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4">
           <Button type="submit" className="w-full m-8" disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
+            {isLoading ? "Connexion en cours..." : "Connexion"}
           </Button>
         </CardFooter>
       </form>

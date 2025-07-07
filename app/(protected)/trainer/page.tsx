@@ -25,6 +25,8 @@ import { Label } from "@/components/ui/label";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -41,6 +43,7 @@ import {
   ImageIcon,
   X,
   CheckCircle,
+  Delete,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { courseApi, enrollmentApi } from "@/lib/api";
@@ -62,6 +65,7 @@ export default function TrainerDashboard() {
   const [studentsProgress, setStudentsProgress] = useState<
     StudentProgressResponse[]
   >([]);
+  const [deleteCourseId, setDeleteCourseId] = useState<number | null>(null);
 
   // Fetch students progress on mount
   useEffect(() => {
@@ -140,6 +144,39 @@ export default function TrainerDashboard() {
       : studentsProgress.filter(
           (progress) => progress.courseTitle === selectedCourse
         );
+
+  const confirmDeleteCourse = async () => {
+    if (!deleteCourseId) return;
+
+    setLoading(true);
+    try {
+      const response = await courseApi.deleteCourse(deleteCourseId);
+
+      if (response.success) {
+        alert("Formation supprimé avec succès !");
+        setDeleteCourseId(null);
+        // Update course list after deletion
+        setTrainerCourses((prev) =>
+          prev.filter((course) => course.id !== deleteCourseId)
+        );
+      } else {
+        alert(
+          response.error?.message ||
+            "La suppression de la formation a échoué. Veuillez réessayer."
+        );
+        setDeleteCourseId(null);
+      }
+    } catch (error) {
+      console.error("Course deletion failed:", error);
+      alert("La suppression de la formation a échoué. Veuillez réessayer.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCourse = (userId: number) => {
+    setDeleteCourseId(userId);
+  };
 
   // Course data update functions
   const updateCourseField = (
@@ -268,11 +305,11 @@ export default function TrainerDashboard() {
         !courseData.duration ||
         !courseData.coverImage
       ) {
-        throw new Error("Please fill all required fields");
+        throw new Error("Veuillez remplir tous les champs obligatoires");
       }
 
       if (courseData.modules.length === 0) {
-        throw new Error("Please add at least one module");
+        throw new Error("Veuillez ajouter au moins un module");
       }
 
       // Check if each module has at least one lesson
@@ -280,14 +317,14 @@ export default function TrainerDashboard() {
         (m) => m.lessons.length === 0
       );
       if (emptyModules.length > 0) {
-        throw new Error("Each module must have at least one lesson");
+        throw new Error("Chaque module doit avoir au moins une leçon");
       }
 
       // Make API call with course data
       const response = await courseApi.createCourse(courseData);
 
       if (response.success) {
-        alert("Course created successfully!");
+        alert("Formation créée avec succès !");
         // Reset form
         setCourseData({
           title: "",
@@ -312,7 +349,7 @@ export default function TrainerDashboard() {
         setActiveTab("courses");
       } else {
         const errorMessage =
-          response.error?.message || "Course creation failed";
+          response.error?.message || "La création de la formation a échoué";
         throw new Error(errorMessage);
       }
     } catch (error: unknown) {
@@ -320,7 +357,7 @@ export default function TrainerDashboard() {
       alert(
         error instanceof Error
           ? error.message
-          : "Course creation failed. Please try again."
+          : "La création de la formation a échoué. Veuillez réessayer."
       );
     } finally {
       setLoading(false);
@@ -342,9 +379,9 @@ export default function TrainerDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Trainer Dashboard</h1>
+        <h1 className="text-3xl font-bold">Tableau de Bord du Formateur</h1>
         <p className="text-muted-foreground">
-          Manage your courses and track student progress
+          Gérez vos formations et suivez la progression des étudiants
         </p>
       </div>
 
@@ -354,17 +391,17 @@ export default function TrainerDashboard() {
         className="space-y-4"
       >
         <TabsList>
-          <TabsTrigger value="courses">My Courses</TabsTrigger>
-          <TabsTrigger value="students">Student Progress</TabsTrigger>
-          <TabsTrigger value="create">Create Course</TabsTrigger>
+          <TabsTrigger value="courses">Mes Formations</TabsTrigger>
+          <TabsTrigger value="students">Progression des Étudiants</TabsTrigger>
+          <TabsTrigger value="create">Créer une Formation</TabsTrigger>
         </TabsList>
 
         <TabsContent value="courses" className="space-y-4">
           <div className="flex justify-between items-center">
-            <h2 className="text-xl font-semibold">Course Management</h2>
+            <h2 className="text-xl font-semibold">Gestion des Formations</h2>
             <Button onClick={handleNewCourse}>
               <Plus className="h-4 w-4 mr-2" />
-              New Course
+              Nouvelle Formation
             </Button>
           </div>
 
@@ -376,7 +413,7 @@ export default function TrainerDashboard() {
                     <div>
                       <CardTitle className="text-lg">{course.title}</CardTitle>
                       <CardDescription>
-                        Last updated:{" "}
+                        Dernière mise à jour :{" "}
                         {new Date(course.updatedAt).toLocaleDateString()}
                       </CardDescription>
                     </div>
@@ -387,14 +424,14 @@ export default function TrainerDashboard() {
                 <CardContent>
                   <div className="grid gap-4 md:grid-cols-4">
                     <div>
-                      <p className="text-sm font-medium mb-1">Students</p>
+                      <p className="text-sm font-medium mb-1">Étudiants</p>
                       <p className="text-2xl font-bold">
                         {course.enrollmentsCount}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-sm font-medium mb-1">Rating</p>
+                      <p className="text-sm font-medium mb-1">Note</p>
                       <p className="text-2xl font-bold">
                         {course.averageRating.toFixed(1)} / 5
                       </p>
@@ -408,7 +445,16 @@ export default function TrainerDashboard() {
                         className="text-yellow-600 hover:bg-yellow-100 hover:text-yellow-700 border-yellow-300"
                       >
                         <Edit className="h-4 w-4 mr-1" />
-                        Edit
+                        Modifier
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteCourse(course.id)}
+                        className="text-red-600 hover:bg-red-100 hover:text-red-700 border-red-300"
+                      >
+                        <Trash2 className="h-4 w-4 mr-1" />
+                        Supprimer
                       </Button>
                     </div>
                   </div>
@@ -420,13 +466,13 @@ export default function TrainerDashboard() {
 
         <TabsContent value="students" className="space-y-4">
           <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold">Student Progress</h2>
+            <h2 className="text-xl font-semibold">Progression des Étudiants</h2>
             <Select value={selectedCourse} onValueChange={setSelectedCourse}>
               <SelectTrigger className="w-64">
-                <SelectValue placeholder="Filter by course" />
+                <SelectValue placeholder="Filtrer par formation" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Courses</SelectItem>
+                <SelectItem value="all">Toutes les Formations</SelectItem>
                 {trainerCourses.map((course) => (
                   <SelectItem key={course.id} value={course.title}>
                     {course.title}
@@ -454,18 +500,20 @@ export default function TrainerDashboard() {
                 <CardContent className="space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Course: {student.courseTitle}</span>
-                      <span>{student.completionPercentage}% Complete</span>
+                      <span>Formation : {student.courseTitle}</span>
+                      <span>{student.completionPercentage}% Terminé</span>
                     </div>
                     <Progress
                       value={student.completionPercentage}
-                      className="h-2"
+                      className="h-2 [&>div]:bg-green-600"
                     />
                   </div>
 
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <p className="text-sm font-medium mb-1">Quiz Average</p>
+                      <p className="text-sm font-medium mb-1">
+                        Moyenne de l&apos;Évaluation
+                      </p>
                       <p className="text-lg font-bold">
                         {student.averageScore}%
                       </p>
@@ -478,7 +526,7 @@ export default function TrainerDashboard() {
           {filteredStudents.length === 0 && (
             <div className="text-center py-8">
               <p className="text-muted-foreground">
-                No students found for the selected course.
+                Aucun étudiant trouvé pour la formation sélectionnée.
               </p>
             </div>
           )}
@@ -487,22 +535,24 @@ export default function TrainerDashboard() {
         <TabsContent value="create" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Create New Course</CardTitle>
+              <CardTitle>Créer une Nouvelle Formation</CardTitle>
               <CardDescription>
-                Build a comprehensive training course with modules, lessons, and
-                quizzes
+                Créez une formation complète avec des modules, des leçons et des
+                évaluations
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               {/* Basic Course Information */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Course Information</h3>
+                <h3 className="text-lg font-semibold">
+                  Informations sur la Formation
+                </h3>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="title">Course Title</Label>
+                    <Label htmlFor="title">Titre de la Formation</Label>
                     <Input
                       id="title"
-                      placeholder="Enter course title"
+                      placeholder="Entrez le titre de la formation"
                       value={courseData.title}
                       onChange={(e) =>
                         updateCourseField("title", e.target.value)
@@ -510,7 +560,7 @@ export default function TrainerDashboard() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="category">Category</Label>
+                    <Label htmlFor="category">Catégorie</Label>
                     <Select
                       value={courseData.categoryId.toString()}
                       onValueChange={(value) =>
@@ -518,7 +568,7 @@ export default function TrainerDashboard() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder="Sélectionnez une catégorie" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="1">Web Development</SelectItem>
@@ -533,7 +583,7 @@ export default function TrainerDashboard() {
 
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="level">Level</Label>
+                    <Label htmlFor="level">Niveau</Label>
                     <Select
                       value={courseData.level}
                       onValueChange={(value) =>
@@ -541,7 +591,7 @@ export default function TrainerDashboard() {
                       }
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select level" />
+                        <SelectValue placeholder="Sélectionnez un niveau" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="BEGINNER">Beginner</SelectItem>
@@ -554,10 +604,10 @@ export default function TrainerDashboard() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="duration">Duration</Label>
+                    <Label htmlFor="duration">Durée</Label>
                     <Input
                       id="duration"
-                      placeholder="e.g., 8 weeks"
+                      placeholder="ex: 8 semaines"
                       value={courseData.duration}
                       onChange={(e) =>
                         updateCourseField("duration", e.target.value)
@@ -570,7 +620,7 @@ export default function TrainerDashboard() {
                   <Label htmlFor="description">Description</Label>
                   <Textarea
                     id="description"
-                    placeholder="Enter course description"
+                    placeholder="Entrez la description de la formation"
                     value={courseData.description || ""}
                     onChange={(e) =>
                       updateCourseField("description", e.target.value)
@@ -581,7 +631,7 @@ export default function TrainerDashboard() {
 
                 {/* Course Cover Image */}
                 <div className="space-y-2">
-                  <Label htmlFor="cover-image">Course Cover Image</Label>
+                  <Label htmlFor="cover-image">Image de Couverture</Label>
                   {courseData.coverImage ? (
                     <div className="border-2 border-green-200 rounded-lg p-4 bg-green-50">
                       <div className="flex items-center justify-between">
@@ -615,7 +665,7 @@ export default function TrainerDashboard() {
                     <div className="border-2 border-dashed border-muted-foreground/25 p-6 text-center rounded-lg">
                       <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                       <p className="text-sm text-muted-foreground mb-2">
-                        Upload a cover image for your course
+                        Téléchargez une image de couverture pour votre formation
                       </p>
                       <Button
                         variant="outline"
@@ -634,7 +684,7 @@ export default function TrainerDashboard() {
                         }}
                       >
                         <Upload className="h-4 w-4 mr-2" />
-                        Choose Image
+                        Choisir une Image
                       </Button>
                     </div>
                   )}
@@ -643,7 +693,9 @@ export default function TrainerDashboard() {
 
               {/* Course Modules */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Course Curriculum</h3>
+                <h3 className="text-lg font-semibold">
+                  Programme de Formation
+                </h3>
 
                 {/* Existing Modules */}
                 {courseData.modules.map((module, index) => (
@@ -653,7 +705,7 @@ export default function TrainerDashboard() {
                         Module {index + 1}: {module.title}
                       </CardTitle>
                       <CardDescription>
-                        {module.lessons.length} lessons
+                        {module.lessons.length} leçons
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -670,7 +722,7 @@ export default function TrainerDashboard() {
                                   {lessonIndex + 1}. {lesson.title}
                                 </span>
                                 <p className="text-xs text-muted-foreground">
-                                  Video • {lesson.duration || "No duration"}
+                                  Vidéo • {lesson.duration || "Pas de durée"}
                                 </p>
                               </div>
                             </div>
@@ -684,7 +736,7 @@ export default function TrainerDashboard() {
                                 }
                               >
                                 <Play className="h-3 w-3 mr-1" />
-                                Preview
+                                Aperçu
                               </Button>
                             )}
                           </div>
@@ -697,7 +749,7 @@ export default function TrainerDashboard() {
                         className="mt-2 text-red-600 hover:bg-red-50"
                       >
                         <Trash2 className="h-4 w-4 mr-1" />
-                        Remove Module
+                        Supprimer le Module
                       </Button>
                     </CardContent>
                   </Card>
@@ -706,14 +758,16 @@ export default function TrainerDashboard() {
                 {/* Current Module Builder */}
                 <Card className="border-dashed">
                   <CardHeader>
-                    <CardTitle className="text-base">Add New Module</CardTitle>
+                    <CardTitle className="text-base">
+                      Ajouter un Module
+                    </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="module-title">Module Title</Label>
+                      <Label htmlFor="module-title">Titre du Module</Label>
                       <Input
                         id="module-title"
-                        placeholder="Enter module title"
+                        placeholder="Entrez le titre du module"
                         value={currentModule.title}
                         onChange={(e) =>
                           setCurrentModule({
@@ -726,14 +780,14 @@ export default function TrainerDashboard() {
 
                     {/* Lessons in Current Module */}
                     <div className="space-y-2">
-                      <Label>Lessons</Label>
+                      <Label>Leçons</Label>
                       {currentModule.lessons.map((lesson, lessonIndex) => (
                         <div
                           key={lessonIndex}
                           className="grid gap-2 md:grid-cols-4 p-3 border rounded"
                         >
                           <Input
-                            placeholder="Lesson title"
+                            placeholder="Titre de la leçon"
                             value={lesson.title}
                             onChange={(e) =>
                               updateLessonInCurrentModule(
@@ -744,7 +798,7 @@ export default function TrainerDashboard() {
                             }
                           />
                           <Input
-                            placeholder="Duration (e.g., 15 min)"
+                            placeholder="Durée (ex: 15 min)"
                             value={lesson.duration || ""}
                             onChange={(e) =>
                               updateLessonInCurrentModule(
@@ -783,7 +837,7 @@ export default function TrainerDashboard() {
                             <Upload className="h-4 w-4 mr-1" />
                             {lesson.video
                               ? lesson.video.name.substring(0, 15) + "..."
-                              : "Upload Video"}
+                              : "Télécharger la Vidéo"}
                           </Button>
                           <Button
                             size="sm"
@@ -803,7 +857,7 @@ export default function TrainerDashboard() {
                         className="w-full bg-transparent"
                       >
                         <Plus className="h-4 w-4 mr-2" />
-                        Add Lesson
+                        Ajouter une Leçon
                       </Button>
                     </div>
 
@@ -815,7 +869,7 @@ export default function TrainerDashboard() {
                       }
                     >
                       <Save className="h-4 w-4 mr-2" />
-                      Save Module
+                      Enregistrer le Module
                     </Button>
                   </CardContent>
                 </Card>
@@ -823,7 +877,9 @@ export default function TrainerDashboard() {
 
               {/* Quiz Section */}
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Course Quiz</h3>
+                <h3 className="text-lg font-semibold">
+                  Évaluation de la Formation
+                </h3>
 
                 {/* Existing Quiz Questions */}
                 {courseData.quiz?.questions.map((question, index) => (
@@ -867,7 +923,7 @@ export default function TrainerDashboard() {
                                   variant="outline"
                                   className="ml-2 text-xs"
                                 >
-                                  Correct
+                                  Correcte
                                 </Badge>
                               )}
                             </div>
@@ -882,7 +938,7 @@ export default function TrainerDashboard() {
                 <Card className="border-dashed">
                   <CardHeader>
                     <CardTitle className="text-base">
-                      Add Quiz Question
+                      Ajouter une Question
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
@@ -890,7 +946,7 @@ export default function TrainerDashboard() {
                       <Label htmlFor="question">Question</Label>
                       <Textarea
                         id="question"
-                        placeholder="Enter your question"
+                        placeholder="Entrez votre question"
                         value={currentQuestion.question}
                         onChange={(e) =>
                           setCurrentQuestion({
@@ -903,7 +959,7 @@ export default function TrainerDashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Answer Options</Label>
+                      <Label>Options de Réponse</Label>
                       {currentQuestion.answers.map((answer, index) => (
                         <div key={index} className="flex gap-2 items-center">
                           <span className="text-sm font-medium w-6">
@@ -923,7 +979,7 @@ export default function TrainerDashboard() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label>Correct Answer</Label>
+                      <Label>Réponse Correcte</Label>
                       <RadioGroup
                         value={currentQuestion.answers
                           .findIndex((a) => a.correct)
@@ -964,7 +1020,7 @@ export default function TrainerDashboard() {
                       }
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      Add Question
+                      Ajouter la Question
                     </Button>
                   </CardContent>
                 </Card>
@@ -981,9 +1037,9 @@ export default function TrainerDashboard() {
                     loading
                   }
                 >
-                  {loading ? "Creating..." : "Create Course"}
+                  {loading ? "Création en cours..." : "Créer la Formation"}
                 </Button>
-                <Button variant="outline">Save as Draft</Button>
+                <Button variant="outline">Enregistrer comme Brouillon</Button>
               </div>
             </CardContent>
           </Card>
@@ -997,18 +1053,51 @@ export default function TrainerDashboard() {
       >
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Video Preview</DialogTitle>
+            <DialogTitle>Aperçu Vidéo</DialogTitle>
           </DialogHeader>
           <div className="aspect-video bg-black rounded-lg flex items-center justify-center">
             {selectedVideo ? (
               <video controls className="w-full h-full rounded-lg">
                 <source src={selectedVideo} type="video/mp4" />
-                Your browser does not support the video tag.
+                Votre navigateur ne prend pas en charge la balise vidéo.
               </video>
             ) : (
-              <p className="text-white">Video player placeholder</p>
+              <p className="text-white">Emplacement de la vidéo</p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog
+        open={!!deleteCourseId}
+        onOpenChange={() => setDeleteCourseId(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Confirmer la Suppression</DialogTitle>
+            <DialogDescription>
+              Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action
+              ne peut pas être annulée et supprimera définitivement
+              l&apos;utilisateur de la plateforme.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteCourseId(null)}
+              disabled={loading}
+            >
+              Annuler
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDeleteCourse}
+              disabled={loading}
+            >
+              {loading ? "Suppression en cours..." : "Supprimer l'Utilisateur"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

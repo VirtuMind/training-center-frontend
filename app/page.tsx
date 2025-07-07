@@ -36,8 +36,8 @@ export default function RootPage() {
   return (
     <div className="min-h-screen flex items-center justify-center">
       <div className="animate-pulse text-center">
-        <h1 className="text-2xl font-bold">Loading...</h1>
-        <p className="text-muted-foreground">Please wait</p>
+        <h1 className="text-2xl font-bold">Chargement en cours...</h1>
+        <p className="text-muted-foreground">Veuillez patienter</p>
       </div>
     </div>
   );

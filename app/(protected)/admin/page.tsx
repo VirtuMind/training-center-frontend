@@ -100,7 +100,7 @@ export default function AdminDashboard() {
       const response = await userApi.deleteUser(deleteUserId);
 
       if (response.success) {
-        alert("User deleted successfully!");
+        alert("Utilisateur supprimé avec succès !");
         setDeleteUserId(null);
         // Update users state to remove deleted user
         setUsers((prevUsers) =>
@@ -108,13 +108,14 @@ export default function AdminDashboard() {
         );
       } else {
         alert(
-          response.error?.message || "User deletion failed. Please try again."
+          response.error?.message ||
+            "La suppression de l'utilisateur a échoué. Veuillez réessayer."
         );
         setDeleteUserId(null);
       }
     } catch (error) {
       console.error("User deletion failed:", error);
-      alert("User deletion failed. Please try again.");
+      alert("La suppression de l'utilisateur a échoué. Veuillez réessayer.");
     } finally {
       setLoading(false);
     }
@@ -126,7 +127,7 @@ export default function AdminDashboard() {
       const response = await userApi.createUser(newUser);
       console.log("user to create:", newUser);
       if (response.success) {
-        alert("User created successfully!");
+        alert("Utilisateur créé avec succès !");
         setNewUser({
           fullname: "",
           username: "",
@@ -137,7 +138,8 @@ export default function AdminDashboard() {
         setUsers((prevUsers) => [...prevUsers, response.data]);
       } else {
         setError(
-          response.error?.message || "User creation failed. Please try again."
+          response.error?.message ||
+            "La création de l'utilisateur a échoué. Veuillez réessayer."
         );
       }
     } catch (error) {
@@ -150,9 +152,9 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <h1 className="text-3xl font-bold">Tableau de Bord Admin</h1>
         <p className="text-muted-foreground">
-          Manage users and platform analytics
+          Gérer les utilisateurs et les analyses de la plateforme
         </p>
       </div>
 
@@ -162,16 +164,16 @@ export default function AdminDashboard() {
         className="space-y-4"
       >
         <TabsList>
-          <TabsTrigger value="users">User Management</TabsTrigger>
-          <TabsTrigger value="create-user">Create User</TabsTrigger>
+          <TabsTrigger value="users">Gestion des Utilisateurs</TabsTrigger>
+          <TabsTrigger value="create-user">Créer un Utilisateur</TabsTrigger>
         </TabsList>
 
         <TabsContent value="users" className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">User Management</h2>
+            <h2 className="text-xl font-semibold">Gestion des Utilisateurs</h2>
             <Button onClick={handleAddUser}>
               <Plus className="h-4 w-4 mr-2" />
-              Add User
+              Ajouter un Utilisateur
             </Button>
           </div>
 
@@ -180,7 +182,7 @@ export default function AdminDashboard() {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Search users..."
+                placeholder="Rechercher des utilisateurs..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10"
@@ -188,13 +190,13 @@ export default function AdminDashboard() {
             </div>
             <Select value={selectedRole} onValueChange={setSelectedRole}>
               <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by role" />
+                <SelectValue placeholder="Filtrer par rôle" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="All">All Roles</SelectItem>
-                <SelectItem value="Student">Student</SelectItem>
-                <SelectItem value="Trainer">Trainer</SelectItem>
-                <SelectItem value="Admin">Admin</SelectItem>
+                <SelectItem value="All">Tous les Rôles</SelectItem>
+                <SelectItem value="STUDENT">Étudiant</SelectItem>
+                <SelectItem value="TRAINER">Formateur</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -204,10 +206,10 @@ export default function AdminDashboard() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
+                  <TableHead>Nom</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Join Date</TableHead>
+                  <TableHead>Rôle</TableHead>
+                  <TableHead>Date d&apos;inscription</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -220,8 +222,12 @@ export default function AdminDashboard() {
                     <TableCell>{user.username}</TableCell>
                     <TableCell>
                       <Badge
-                        variant={
-                          user.role === "ADMIN" ? "default" : "secondary"
+                        className={
+                          user.role === "ADMIN"
+                            ? "bg-red-100 border-red-300 text-red-500  hover:text-red-700"
+                            : user.role === "STUDENT"
+                            ? "bg-blue-100 border-blue-300 text-blue-500  hover:text-blue-700"
+                            : "bg-orange-100 border-orange-300 text-orange-500  hover:text-orange-700"
                         }
                       >
                         {user.role}
@@ -258,16 +264,18 @@ export default function AdminDashboard() {
         <TabsContent value="create-user" className="space-y-4">
           <Card>
             <CardHeader>
-              <CardTitle>Create New User</CardTitle>
-              <CardDescription>Add a new user to the platform</CardDescription>
+              <CardTitle>Créer un Nouvel Utilisateur</CardTitle>
+              <CardDescription>
+                Ajouter un nouvel utilisateur à la plateforme
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name</Label>
+                  <Label htmlFor="name">Nom Complet</Label>
                   <Input
                     id="name"
-                    placeholder="Enter full name"
+                    placeholder="Entrez le nom complet"
                     value={newUser.fullname}
                     onChange={(e) =>
                       setNewUser({ ...newUser, fullname: e.target.value })
@@ -275,11 +283,11 @@ export default function AdminDashboard() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email Address</Label>
+                  <Label htmlFor="email">Adresse Email</Label>
                   <Input
                     id="email"
                     type="email"
-                    placeholder="Enter email address"
+                    placeholder="Entrez l'adresse email"
                     value={newUser.username}
                     onChange={(e) =>
                       setNewUser({ ...newUser, username: e.target.value })
@@ -290,7 +298,7 @@ export default function AdminDashboard() {
 
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
+                  <Label htmlFor="role">Rôle</Label>
                   <Select
                     value={newUser.role}
                     onValueChange={(value) =>
@@ -301,7 +309,7 @@ export default function AdminDashboard() {
                     }
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select role" />
+                      <SelectValue placeholder="Sélectionner un rôle" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="STUDENT">Student</SelectItem>
@@ -311,11 +319,13 @@ export default function AdminDashboard() {
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password (min 8 characters)</Label>
+                  <Label htmlFor="password">
+                    Mot de passe (min 8 caractères)
+                  </Label>
                   <Input
                     id="password"
                     type="password"
-                    placeholder="Enter password"
+                    placeholder="Entrez le mot de passe"
                     value={newUser.password}
                     onChange={(e) =>
                       setNewUser({ ...newUser, password: e.target.value })
@@ -339,10 +349,10 @@ export default function AdminDashboard() {
                     loading
                   }
                 >
-                  {loading ? "Creating..." : "Create User"}
+                  {loading ? "Création en cours..." : "Créer l'Utilisateur"}
                 </Button>
                 <Button variant="outline" onClick={() => setActiveTab("users")}>
-                  Cancel
+                  Annuler
                 </Button>
               </div>
             </CardContent>
@@ -354,10 +364,11 @@ export default function AdminDashboard() {
       <Dialog open={!!deleteUserId} onOpenChange={() => setDeleteUserId(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm Deletion</DialogTitle>
+            <DialogTitle>Confirmer la Suppression</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete this user? This action cannot be
-              undone and will permanently remove the user from the platform.
+              Êtes-vous sûr de vouloir supprimer cet utilisateur ? Cette action
+              ne peut pas être annulée et supprimera définitivement
+              l&apos;utilisateur de la plateforme.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -366,14 +377,14 @@ export default function AdminDashboard() {
               onClick={() => setDeleteUserId(null)}
               disabled={loading}
             >
-              Cancel
+              Annuler
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDeleteUser}
               disabled={loading}
             >
-              {loading ? "Deleting..." : "Delete User"}
+              {loading ? "Suppression en cours..." : "Supprimer l'Utilisateur"}
             </Button>
           </DialogFooter>
         </DialogContent>
